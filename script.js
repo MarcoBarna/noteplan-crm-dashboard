@@ -7,16 +7,11 @@ const SETTINGS = {
 }
 
 const PLUGIN_ID = "np.jokky102.crm"
-const SETTINGS_FOLDER = "jokky.DashboardCrm"
 
-// Reads settings from settings.json (the file the sidebar UI writes to)
-async function getSetting(key, defaultValue) {
-  try {
-    const s = await DataStore.loadJSON(`../${SETTINGS_FOLDER}/settings.json`)
-    if (s && s[key] !== undefined && s[key] !== null && String(s[key]) !== "") return s[key]
-  } catch (e) {
-    console.log(`⚠️ getSetting error: ${e.message}`)
-  }
+// Reads a setting from DataStore.settings, falling back to defaultValue
+function getSetting(key, defaultValue) {
+  const value = DataStore.settings[key]
+  if (value !== undefined && value !== null && String(value) !== "") return value
   return defaultValue
 }
 
@@ -79,7 +74,6 @@ async function addRelationship() {
       `${name.replace(/[\/\\:*?"<>|]/g, "")}.md`
     )
 
-    console.log(`✅ Contact created: ${filename}`)
     scheduleNextReminder(name, reminderFreqKey, filename)
 
     await CommandBar.prompt(
@@ -97,7 +91,6 @@ async function addRelationship() {
 
 async function showCRMDashboard() {
   try {
-    console.log(`📊 Loading CRM Dashboard...`)
     const contacts = await getRelationships()
     const html = getCRMDashboardHTML(contacts)
 
@@ -108,8 +101,6 @@ async function showCRMDashboard() {
       iconColor: "blue-500",
       autoTopPadding: true,
     })
-
-    console.log(`✅ CRM Dashboard opened with ${contacts.length} contacts`)
   } catch (error) {
     console.log(`❌ Error showing dashboard: ${error.message}`)
   }
@@ -136,7 +127,7 @@ async function logInteractionBase(contact) {
     }
 
     const interaction = `${await formatDateTime(new Date())} ${interactionType.value} - ${notes || "No notes"}`
-    let interactionPosition = await getSetting("crm-interaction-position", "append")
+    let interactionPosition = getSetting("crm-interaction-position", "append")
     if (typeof interactionPosition === "boolean") {
       interactionPosition = interactionPosition ? "prepend" : "append"
     }
@@ -194,15 +185,13 @@ async function addInteraction() {
     )
 
     // ✅ Navigate to the contact note only if the preference is enabled
-    const navigateAfterInteraction = await getSetting("crm-navigate-after-interaction", "true")
+    const navigateAfterInteraction = getSetting("crm-navigate-after-interaction", "true")
     if (navigateAfterInteraction !== "false") {
       await Editor.openNoteByFilename(contact.filename)
     }
 
     // ✅ If the dashboard is open, refresh it in the background without navigating to it
     await refreshDashboardIfOpen()
-
-    console.log(`✅ Interaction logged for ${contact.name}`)
   } catch (error) {
     console.log(`❌ Error adding interaction: ${error.message}`)
   }
@@ -230,34 +219,15 @@ async function logInteractionWithReminder() {
     await completeContactReminder(contact.name)
 
     // ✅ Create the next reminder if configured
-    console.log(`\n📋 ===== REMINDER CREATION DEBUG =====`)
-    console.log(`Contact name: "${contact.name}"`)
-    console.log(`Contact frequencyKey: "${contact.frequencyKey}"`)
-    console.log(`Contact frequency: "${contact.frequency}"`)
-    console.log(`Contact filename: "${contact.filename}"`)
-    
     const hasValidFreqKey = contact.frequencyKey && contact.frequencyKey.trim() !== ""
-    console.log(`Has valid frequencyKey? ${hasValidFreqKey}`)
-    
     if (hasValidFreqKey) {
       try {
         const nextDate = getNextReminderDate(contact.frequencyKey)
-        const reminderTitle = `Follow up with ${contact.name}`
-        
-        console.log(`✅ Creating reminder:`)
-        console.log(`   Title: "${reminderTitle}"`)
-        console.log(`   Date: ${nextDate.toString()}`)
-        console.log(`   From contact file: ${contact.filename}`)
-        
-        scheduleCalendarReminder(reminderTitle, nextDate, contact.filename)
-        console.log(`✅ REMINDER SCHEDULED`)
+        scheduleCalendarReminder(`Follow up with ${contact.name}`, nextDate, contact.filename)
       } catch (reminderError) {
-        console.log(`❌ ERROR creating reminder: ${reminderError.message}`)
+        console.log(`❌ Error creating reminder: ${reminderError.message}`)
       }
-    } else {
-      console.log(`❌ SKIPPED: No valid frequencyKey found`)
     }
-    console.log(`📋 ===== END DEBUG =====\n`)
 
     await CommandBar.prompt(
       "Interaction logged!",
@@ -266,15 +236,13 @@ async function logInteractionWithReminder() {
     )
 
     // ✅ Navigate to the contact note only if the preference is enabled
-    const navigateAfterInteraction = await getSetting("crm-navigate-after-interaction", "true")
+    const navigateAfterInteraction = getSetting("crm-navigate-after-interaction", "true")
     if (navigateAfterInteraction !== "false") {
       await Editor.openNoteByFilename(contact.filename)
     }
 
     // ✅ If the dashboard is open, refresh it in the background without navigating to it
     await refreshDashboardIfOpen()
-
-    console.log(`✅ Interaction logged and reminder scheduled for ${contact.name}`)
   } catch (error) {
     console.log(`❌ Error adding interaction with reminder: ${error.message}`)
   }
@@ -321,8 +289,6 @@ async function setReminder() {
     )
 
     await refreshDashboardIfOpen()
-
-    console.log(`✅ Reminder set for ${contact.name}`)
   } catch (error) {
     console.log(`❌ Error setting reminder: ${error.message}`)
   }
@@ -330,7 +296,7 @@ async function setReminder() {
 
 async function updateSettings() {
   try {
-    const currentTag = await getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
+    const currentTag = getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
 
     const tag = await CommandBar.showInput(
       "Relationship tag prefix",
@@ -359,17 +325,15 @@ async function updateSettings() {
     )
     const posVal = positionChoice.index === 0 ? "append" : "prepend"
 
-    // Save settings via DataStore.saveJSON in the file used by the sidebar UI
-    const currentSettings = (await DataStore.loadJSON(`../${SETTINGS_FOLDER}/settings.json`)) || {}
-    await DataStore.saveJSON({
-      ...currentSettings,
-      "crm-relationship-tag": tag || currentSettings["crm-relationship-tag"] || SETTINGS.relationshipTag,
+    // Save settings via DataStore.settings
+    DataStore.settings = {
+      ...DataStore.settings,
+      "crm-relationship-tag": tag || DataStore.settings["crm-relationship-tag"] || SETTINGS.relationshipTag,
       "crm-navigate-after-interaction": navVal,
       "crm-interaction-datetime": dtVal,
       "crm-interaction-position": posVal,
-    }, `../${SETTINGS_FOLDER}/settings.json`)
+    }
 
-    console.log(`✅ Settings saved: datetime=${dtVal}, position=${posVal}, navigate=${navVal}`)
     await refreshDashboardIfOpen()
   } catch (error) {
     console.log(`❌ Error updating settings: ${error.message}`)
@@ -384,34 +348,21 @@ async function getRelationships() {
     const folderNotes = DataStore.projectNotes.filter(
       (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
     )
-    
-    console.log(`📂 Found ${folderNotes.length} notes in ${SETTINGS.dataFolder}`)
 
     // Get the current tag prefix from settings
-    const tagPrefix = await getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
+    const tagPrefix = getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
     const requiredTag = `#${tagPrefix}/`
 
     const relationships = folderNotes
       .map((note) => {
         // Verify that it is a valid contact (has the configured tag)
-        if (!note.content.includes(requiredTag)) {
-          console.log(`⚠️ Skipping ${note.title}: no ${requiredTag} tag`)
-          return null
-        }
-        
+        if (!note.content.includes(requiredTag)) return null
         const rel = parseContactNote(note)
-        if (!rel) {
-          console.log(`⚠️ Could not parse contact from ${note.title}`)
-          return null
-        }
-        
-        const contact = { name: note.title, filename: note.filename, ...rel }
-        console.log(`✅ Loaded contact: ${contact.name} | frequency: ${contact.frequency} | frequencyKey: ${contact.frequencyKey}`)
-        return contact
+        if (!rel) return null
+        return { name: note.title, filename: note.filename, ...rel }
       })
       .filter(Boolean)
 
-    console.log(`✅ Loaded ${relationships.length} valid contacts`)
     return relationships
   } catch (error) {
     console.log(`❌ Error getting relationships: ${error.message}`)
@@ -439,29 +390,17 @@ function parseContactNote(note) {
     let lastContactMatch = content.match(/\*\*Last Contact\*\*:\s*(.+)/i)
     if (lastContactMatch) lastContact = lastContactMatch[1].trim()
 
-    console.log(`🔍 Parsing "${note.title}":`)
-    console.log(`   Raw frequency text: "${frequency}"`)
-    
-    // Extract the frequency key from the values
-    console.log(`   Checking against REMINDER_FREQUENCIES:`)
     for (const [key, value] of Object.entries(REMINDER_FREQUENCIES)) {
-      console.log(`      ${key}: "${value}" === "${frequency}" ? ${value === frequency}`)
       if (value === frequency) {
         frequencyKey = key
-        console.log(`      ✅ MATCHED! frequencyKey = "${key}"`)
         break
       }
     }
 
-    // 🔑 FALLBACK: If the frequency is not found, try to find the key directly
+    // Fallback: read the key directly if it was stored in the note
     if (!frequencyKey) {
       const keyMatch = content.match(/\*\*Reminder Frequency Key\*\*:\s*(.+)/i)
-      if (keyMatch) {
-        frequencyKey = keyMatch[1].trim()
-        console.log(`   ✅ Found frequencyKey directly from "Reminder Frequency Key": "${frequencyKey}"`)
-      } else {
-        console.log(`   ❌ NO MATCH FOUND for "${frequency}"`)
-      }
+      if (keyMatch) frequencyKey = keyMatch[1].trim()
     }
 
     return {
@@ -495,12 +434,7 @@ function scheduleCalendarReminder(title, date, noteFilename) {
       title, date, null, "reminder", false, "", false,
       `From CRM: ${noteFilename}`
     )
-    const created = Calendar.add(item)
-    if (created) {
-      console.log(`✅ Calendar reminder created: ${title}`)
-    } else {
-      console.log(`❌ Failed to create reminder: ${title}`)
-    }
+    Calendar.add(item)
   } catch (error) {
     console.log(`❌ Error scheduling reminder: ${error.message}`)
   }
@@ -528,18 +462,9 @@ async function completeContactReminder(contactName) {
       !r.isCompleted
     )
 
-    let completedCount = 0
     for (const reminder of contactReminders) {
       reminder.isCompleted = true
       await Calendar.update(reminder)
-      completedCount++
-      console.log(`✅ Completed reminder: ${reminder.title}`)
-    }
-
-    if (completedCount === 0) {
-      console.log(`ℹ️ No pending reminders found for ${contactName}`)
-    } else {
-      console.log(`✅ Completed ${completedCount} reminder(s) for ${contactName}`)
     }
   } catch (error) {
     console.log(`⚠️ Could not complete reminder: ${error.message}`)
@@ -548,10 +473,8 @@ async function completeContactReminder(contactName) {
 
 async function refreshDashboard() {
   try {
-    console.log(`🔄 Refreshing dashboard...`)
     const contacts = await getRelationships()
     const html = getCRMDashboardHTML(contacts)
-    
     await HTMLView.showInMainWindow(html, "CRM Dashboard", {
       customId: WINDOW_ID,
       splitView: false,
@@ -559,8 +482,6 @@ async function refreshDashboard() {
       iconColor: "blue-500",
       autoTopPadding: true,
     })
-    
-    console.log(`✅ Dashboard refreshed`)
   } catch (error) {
     console.log(`⚠️ Could not refresh dashboard: ${error.message}`)
   }
@@ -570,11 +491,7 @@ async function refreshDashboard() {
 async function refreshDashboardIfOpen() {
   try {
     const dashWindow = NotePlan.htmlWindows.find(w => w.customId === WINDOW_ID)
-    if (!dashWindow) {
-      console.log(`ℹ️ Dashboard not open, skipping refresh`)
-      return
-    }
-    console.log(`🔄 Dashboard is open, refreshing in place...`)
+    if (!dashWindow) return
     const contacts = await getRelationships()
     const contactsJSON = JSON.stringify(contacts || [])
       .replace(/</g, "\\u003c")
@@ -582,7 +499,6 @@ async function refreshDashboardIfOpen() {
     await dashWindow.runJavaScript(
       "if (typeof updateContacts === 'function') { updateContacts(" + contactsJSON + "); }"
     )
-    console.log(`✅ Dashboard refreshed in place`)
   } catch (error) {
     console.log(`⚠️ Could not refresh dashboard in place: ${error.message}`)
   }
@@ -613,7 +529,7 @@ function formatDate(date) {
 }
 
 async function formatDateTime(date) {
-  let value = await getSetting("crm-interaction-datetime", "Date + Time")
+  let value = getSetting("crm-interaction-datetime", "Date + Time")
   if (typeof value === "boolean" || value === "true" || value === "false") {
     value = (value === true || value === "true") ? "Date + Time" : "Date Only"
   }
@@ -852,39 +768,19 @@ function getCRMDashboardHTML(contacts) {
   // ──────────────────────────────────────────────────────────────────────────
 
   async function addInteractionFromDashboard() {
-    window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('addInteraction', 'np.jokky102.crm', []); })()`)},
-      onHandle: "onBridgeCallback",
-      id: "addInteraction"
-    });
+    await DataStore.invokePluginCommandByName('addInteraction', 'np.jokky102.crm', []);
   }
 
   async function addInteractionWithReminderFromDashboard() {
-    window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('logInteractionWithReminder', 'np.jokky102.crm', []); })()`)},
-      onHandle: "onBridgeCallback",
-      id: "logInteractionWithReminder"
-    });
+    await DataStore.invokePluginCommandByName('logInteractionWithReminder', 'np.jokky102.crm', []);
   }
 
   async function addReminderFromDashboard() {
-    window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('setReminder', 'np.jokky102.crm', []); })()`)},
-      onHandle: "onBridgeCallback",
-      id: "setReminder"
-    });
+    await DataStore.invokePluginCommandByName('setReminder', 'np.jokky102.crm', []);
   }
 
   async function addContactFromDashboard() {
-    window.webkit.messageHandlers.jsBridge.postMessage({
-      code: ${JSON.stringify(`(function() { DataStore.invokePluginCommandByName('addRelationship', 'np.jokky102.crm', []); })()`)},
-      onHandle: "onBridgeCallback",
-      id: "addRelationship"
-    });
-  }
-
-  function onBridgeCallback(result, id) {
-    console.log('Command executed: ' + id);
+    await DataStore.invokePluginCommandByName('addRelationship', 'np.jokky102.crm', []);
   }
 
   // ──────────────────────────────────────────────────────────────────────────

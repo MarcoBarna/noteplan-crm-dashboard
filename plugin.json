@@ -7,7 +7,7 @@
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
   "plugin.version": "1.0.0",
-  "plugin.script": "src/script.js",
+  "plugin.script": "script.js",
   "plugin.commands": [
     {
       "name": "Add Contact",
