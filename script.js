@@ -387,11 +387,15 @@ async function getRelationships() {
     
     console.log(`📂 Found ${folderNotes.length} notes in ${SETTINGS.dataFolder}`)
 
+    // Get the current tag prefix from settings
+    const tagPrefix = await getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
+    const requiredTag = `#${tagPrefix}/`
+
     const relationships = folderNotes
       .map((note) => {
-        // Verify that it is a valid contact (has the #contact/ tag)
-        if (!note.content.includes("#contact/")) {
-          console.log(`⚠️ Skipping ${note.title}: no #contact/ tag`)
+        // Verify that it is a valid contact (has the configured tag)
+        if (!note.content.includes(requiredTag)) {
+          console.log(`⚠️ Skipping ${note.title}: no ${requiredTag} tag`)
           return null
         }
         
