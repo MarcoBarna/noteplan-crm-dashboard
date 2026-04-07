@@ -42,6 +42,7 @@ const WINDOW_ID = "np.jokky102.crm.main"
 
 async function addRelationship() {
   try {
+    // invokePluginCommandByName expects a return value; return {} to suppress log errors
     const name = await CommandBar.showInput(
       "Contact Name",
       "Create Contact '%@'"
@@ -61,11 +62,13 @@ async function addRelationship() {
     const reminderFreqKey = Object.keys(REMINDER_FREQUENCIES)[reminderFreq.index]
     const frequencyText = Object.values(REMINDER_FREQUENCIES)[reminderFreq.index]
 
+    const tagPrefix = getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
     const noteContent = createContactNote(
       name,
       category.value,
       frequencyText,
-      reminderFreqKey
+      reminderFreqKey,
+      tagPrefix
     )
 
     const filename = DataStore.newNoteWithContent(
@@ -84,8 +87,10 @@ async function addRelationship() {
     
     // Se la dashboard è aperta aggiornala, altrimenti non fa nulla
     await refreshDashboardIfOpen()
+    return {}
   } catch (error) {
     console.log(`❌ Error creating contact: ${error.message}`)
+    return {}
   }
 }
 
@@ -126,7 +131,7 @@ async function logInteractionBase(contact) {
       return false
     }
 
-    const interaction = `${await formatDateTime(new Date())} ${interactionType.value} - ${notes || "No notes"}`
+    const interaction = `${formatDateTime(new Date())} ${interactionType.value} - ${notes || "No notes"}`
     let interactionPosition = getSetting("crm-interaction-position", "append")
     if (typeof interactionPosition === "boolean") {
       interactionPosition = interactionPosition ? "prepend" : "append"
@@ -192,8 +197,10 @@ async function addInteraction() {
 
     // ✅ If the dashboard is open, refresh it in the background without navigating to it
     await refreshDashboardIfOpen()
+    return {}
   } catch (error) {
     console.log(`❌ Error adding interaction: ${error.message}`)
+    return {}
   }
 }
 
@@ -243,8 +250,10 @@ async function logInteractionWithReminder() {
 
     // ✅ If the dashboard is open, refresh it in the background without navigating to it
     await refreshDashboardIfOpen()
+    return {}
   } catch (error) {
     console.log(`❌ Error adding interaction with reminder: ${error.message}`)
+    return {}
   }
 }
 
@@ -289,8 +298,10 @@ async function setReminder() {
     )
 
     await refreshDashboardIfOpen()
+    return {}
   } catch (error) {
     console.log(`❌ Error setting reminder: ${error.message}`)
+    return {}
   }
 }
 
@@ -342,7 +353,7 @@ async function updateSettings() {
 
 // HELPER FUNCTIONS
 
-async function getRelationships() {
+function getRelationships() {
   try {
     
     const folderNotes = DataStore.projectNotes.filter(
@@ -415,10 +426,11 @@ function parseContactNote(note) {
   }
 }
 
-function createContactNote(name, category, frequency, frequencyKey) {
+function createContactNote(name, category, frequency, frequencyKey, tagPrefix) {
+  const tag = tagPrefix || SETTINGS.relationshipTag
   return `# ${name}
 
-#contact/${category}
+#${tag}/${category}
 
 **Category**: ${category}
 **Frequency**: ${frequency}
@@ -528,7 +540,7 @@ function formatDate(date) {
   return `${year}-${month}-${day}`
 }
 
-async function formatDateTime(date) {
+function formatDateTime(date) {
   let value = getSetting("crm-interaction-datetime", "Date + Time")
   if (typeof value === "boolean" || value === "true" || value === "false") {
     value = (value === true || value === "true") ? "Date + Time" : "Date Only"
