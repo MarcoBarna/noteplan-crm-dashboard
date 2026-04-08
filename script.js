@@ -842,7 +842,7 @@ function getCRMDashboardHTML(contacts) {
       yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
 
       var overdueRaw = (await Calendar.remindersBetween(pastStart, yesterdayEnd, '')).filter(function(r) {
-        return !r.isCompleted;
+        return !r.isCompleted && r.notes && r.notes.startsWith('From CRM:');
       });
 
       // Upcoming: da oggi incluso fino a fine settimana
@@ -851,7 +851,7 @@ function getCRMDashboardHTML(contacts) {
       endOfWeek.setHours(23, 59, 59, 999);
 
       var upcoming = (await Calendar.remindersBetween(todayStart, endOfWeek, '')).filter(function(r) {
-        return !r.isCompleted;
+        return !r.isCompleted && r.notes && r.notes.startsWith('From CRM:');
       });
 
       document.getElementById('upcomingReminders').textContent = upcoming.length;
