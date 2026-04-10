@@ -780,19 +780,24 @@ function getCRMDashboardHTML(contacts) {
   // ──────────────────────────────────────────────────────────────────────────
 
   async function addInteractionFromDashboard() {
-    await DataStore.invokePluginCommandByName('addInteraction', 'np.jokky102.crm', []);
+    await DataStore.invokePluginCommandByName('Log Interaction', 'np.jokky102.crm', []);
   }
 
   async function addInteractionWithReminderFromDashboard() {
-    await DataStore.invokePluginCommandByName('logInteractionWithReminder', 'np.jokky102.crm', []);
+    await DataStore.invokePluginCommandByName('Log Interaction & Schedule Reminder', 'np.jokky102.crm', []);
   }
 
   async function addReminderFromDashboard() {
-    await DataStore.invokePluginCommandByName('setReminder', 'np.jokky102.crm', []);
+    await DataStore.invokePluginCommandByName('Set Reminder', 'np.jokky102.crm', []);
   }
 
   async function addContactFromDashboard() {
-    await DataStore.invokePluginCommandByName('addRelationship', 'np.jokky102.crm', []);
+    await DataStore.invokePluginCommandByName('Add Contact', 'np.jokky102.crm', []);
+  }
+
+  function openContact(el) {
+    var filename = el.getAttribute('data-filename');
+    if (filename) Editor.openNoteByFilename(filename);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -815,7 +820,7 @@ function getCRMDashboardHTML(contacts) {
     }
 
     el.innerHTML = filtered.map(function(c) {
-      return '<div class="card">' +
+      return '<div class="card" data-filename="' + esc(c.filename) + '" onclick="openContact(this)">' +
         '<div class="card-title">' + esc(c.name) + '</div>' +
         '<div class="card-meta">' +
           (c.category ? '<span>🏷️ ' + esc(c.category) + '</span>' : '') +
