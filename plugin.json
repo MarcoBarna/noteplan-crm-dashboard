@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.0.0",
+  "plugin.version": "1.0.1",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -92,6 +92,17 @@
         "prepend"
       ],
       "required": true
+    },
+    {
+      "type": "heading",
+      "title": "Reminders"
+    },
+    {
+      "key": "crm-reminder-list",
+      "title": "Reminder list",
+      "description": "The Reminders list where CRM reminders are saved. Leave empty to use the system default.",
+      "type": "string",
+      "default": ""
     },
     {
       "type": "heading",

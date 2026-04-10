@@ -137,10 +137,11 @@ Open the **CRM Dashboard**, which displays:
 
 **Sections**:
 1. **Upcoming Reminders** — Shows overdue and upcoming reminders for the week
-2. **Contacts** — Displays all contacts with filters by category
+2. **Contacts** — Displays all contacts with filters by category; click any contact to open their note
 3. **Action Buttons** — Quick access to all major commands
 
 **Features**:
+- Click on a contact card to open the contact's note directly
 - Filter contacts by category
 - Click any button to execute commands directly from the dashboard
 - Real-time reminders with visual distinction for overdue items (⚠️ in red)
@@ -175,6 +176,14 @@ All settings are accessible via the **CRM Settings** command (`crms`).
   - **prepend**: New interactions added at the top, below the `## Interactions` heading (reverse chronological order)
 - **Default**: `append`
 - **Use Case**: Use "prepend" to see recent interactions first; use "append" for traditional chronological logs
+
+### Reminders
+
+**Reminder List** (`crm-reminder-list`)
+- **Default**: Empty (uses system default)
+- **Description**: Choose which Reminders list all CRM reminders should be saved to. Leave empty to use NotePlan's default reminder list.
+- **Use Case**: Organize reminders by creating a dedicated "CRM" list or store them in "Work", "Personal", etc.
+- **Configuration**: Set via the **CRM Settings** command to see all available reminder lists
 
 ### Navigation
 
@@ -307,6 +316,12 @@ Each contact note follows this structure:
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
 ## Version History
+
+**v1.0.1** — Dashboard improvements and reminder list control
+- Click on a contact card in the dashboard to open the contact's note directly
+- Choose which Reminders list to use for CRM reminders (new **Reminder List** setting)
+- Fixed dashboard button command names
+- Improved dashboard refresh when settings change
 
 **v1.0.0** — Initial release
 - Core CRM functionality with contacts, interactions, and reminders

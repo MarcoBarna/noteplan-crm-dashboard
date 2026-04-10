@@ -85,7 +85,7 @@ async function addRelationship() {
       ["OK"]
     )
     
-    // Se la dashboard è aperta aggiornala, altrimenti non fa nulla
+    // Refresh dashboard if open, otherwise do nothing
     await refreshDashboardIfOpen()
     return {}
   } catch (error) {
@@ -336,6 +336,13 @@ async function updateSettings() {
     )
     const posVal = positionChoice.index === 0 ? "append" : "prepend"
 
+    // Reminder list picker
+    const reminderLists = Calendar.availableReminderListTitles()
+    const currentList = getSetting("crm-reminder-list", "")
+    const listOptions = ["⬜ Default (system default)", ...reminderLists.map(l => (l === currentList ? "✅ " : "") + l)]
+    const listChoice = await CommandBar.showOptions(listOptions, "Which Reminders list should CRM use?")
+    const listVal = listChoice.index === 0 ? "" : reminderLists[listChoice.index - 1]
+
     // Save settings via DataStore.settings
     DataStore.settings = {
       ...DataStore.settings,
@@ -343,6 +350,7 @@ async function updateSettings() {
       "crm-navigate-after-interaction": navVal,
       "crm-interaction-datetime": dtVal,
       "crm-interaction-position": posVal,
+      "crm-reminder-list": listVal,
     }
 
     await refreshDashboardIfOpen()
@@ -442,8 +450,9 @@ function createContactNote(name, category, frequency, frequencyKey, tagPrefix) {
 
 function scheduleCalendarReminder(title, date, noteFilename) {
   try {
+    const list = getSetting("crm-reminder-list", "")
     const item = CalendarItem.create(
-      title, date, null, "reminder", false, "", false,
+      title, date, null, "reminder", false, list || "", false,
       `From CRM: ${noteFilename}`
     )
     Calendar.add(item)
@@ -508,8 +517,10 @@ async function refreshDashboardIfOpen() {
     const contactsJSON = JSON.stringify(contacts || [])
       .replace(/</g, "\\u003c")
       .replace(/>/g, "\\u003e")
+    const reminderList = getSetting("crm-reminder-list", "")
+    const reminderListJSON = JSON.stringify(reminderList)
     await dashWindow.runJavaScript(
-      "if (typeof updateContacts === 'function') { updateContacts(" + contactsJSON + "); }"
+      "if (typeof updateContacts === 'function') { updateContacts(" + contactsJSON + ", " + reminderListJSON + "); }"
     )
   } catch (error) {
     console.log(`⚠️ Could not refresh dashboard in place: ${error.message}`)
@@ -559,6 +570,9 @@ function getCRMDashboardHTML(contacts) {
   const contactsJSON = JSON.stringify(contacts || [])
     .replace(/</g, "\\u003c")
     .replace(/>/g, "\\u003e")
+
+  const reminderList = getSetting("crm-reminder-list", "")
+  const reminderListJSON = JSON.stringify(reminderList)
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -728,8 +742,9 @@ function getCRMDashboardHTML(contacts) {
 </div>
 
 <script>
-  // Dati iniettati dal plugin
+  // Data injected by the plugin
   var CONTACTS = ${contactsJSON};
+  var REMINDER_LIST = ${reminderListJSON};
   var activeFilter = 'All';
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -776,7 +791,7 @@ function getCRMDashboardHTML(contacts) {
   }
 
   // ──────────────────────────────────────────────────────────────────────────
-  // FUNZIONI PER BUTTONS
+  // BUTTON FUNCTIONS
   // ──────────────────────────────────────────────────────────────────────────
 
   async function addInteractionFromDashboard() {
@@ -840,31 +855,33 @@ function getCRMDashboardHTML(contacts) {
       var todayEnd = new Date(now);
       todayEnd.setHours(23, 59, 59, 999);
 
-      // Overdue: dalla data più remota fino alla fine di ieri (escluso oggi)
+      // Overdue: from the oldest date to the end of yesterday (excluding today)
       var pastStart = new Date(todayStart);
       pastStart.setFullYear(pastStart.getFullYear() - 2);
       var yesterdayEnd = new Date(todayStart);
       yesterdayEnd.setMilliseconds(yesterdayEnd.getMilliseconds() - 1);
 
-      var overdueRaw = (await Calendar.remindersBetween(pastStart, yesterdayEnd, '')).filter(function(r) {
-        return !r.isCompleted && r.notes && r.notes.startsWith('From CRM:');
-      });
+      function isCrmReminder(r) {
+        if (!r.notes || !r.notes.startsWith('From CRM:')) return false;
+        if (REMINDER_LIST && r.calendar !== REMINDER_LIST) return false;
+        return !r.isCompleted;
+      }
 
-      // Upcoming: da oggi incluso fino a fine settimana
+      var overdueRaw = (await Calendar.remindersBetween(pastStart, yesterdayEnd, '')).filter(isCrmReminder);
+
+      // Upcoming: from today (inclusive) to the end of the week
       var endOfWeek = new Date(todayStart);
       endOfWeek.setDate(endOfWeek.getDate() + (6 - todayStart.getDay()));
       endOfWeek.setHours(23, 59, 59, 999);
 
-      var upcoming = (await Calendar.remindersBetween(todayStart, endOfWeek, '')).filter(function(r) {
-        return !r.isCompleted && r.notes && r.notes.startsWith('From CRM:');
-      });
+      var upcoming = (await Calendar.remindersBetween(todayStart, endOfWeek, '')).filter(isCrmReminder);
 
       document.getElementById('upcomingReminders').textContent = upcoming.length;
       document.getElementById('overdueCount').textContent = overdueRaw.length;
 
       var html = '';
 
-      // Mostra overdue in cima con label rossa
+      // Show overdue at the top with red label
       if (overdueRaw.length > 0) {
         html += '<div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Overdue</div>';
         html += overdueRaw.map(function(r) {
@@ -875,7 +892,7 @@ function getCRMDashboardHTML(contacts) {
         }).join('');
       }
 
-      // Mostra upcoming
+      // Show upcoming
       if (upcoming.length > 0) {
         if (overdueRaw.length > 0) {
           html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
@@ -932,9 +949,10 @@ function getCRMDashboardHTML(contacts) {
     }
   }
 
-  // Chiamata dal plugin via runJavaScript per aggiornare i dati senza ricaricare la pagina
-  function updateContacts(newContacts) {
+  // Called by the plugin via runJavaScript to update data without reloading the page
+  function updateContacts(newContacts, newReminderList) {
     CONTACTS = newContacts;
+    if (newReminderList !== undefined) REMINDER_LIST = newReminderList;
     buildCategoryFilters();
     renderContacts();
     renderReminders();
