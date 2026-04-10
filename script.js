@@ -150,13 +150,7 @@ async function logInteractionBase(contact) {
       note.appendParagraph(interaction, "list")
     }
 
-    for (const p of note.paragraphs) {
-      if (p.content.includes("**Last Contact**")) {
-        p.content = `**Last Contact**: ${formatDate(new Date())}`
-        note.updateParagraph(p)
-        break
-      }
-    }
+    note.content = updateFrontmatterKey(note.content, "last_contact", formatDate(new Date()))
 
     return true
   } catch (error) {
@@ -389,44 +383,37 @@ function getRelationships() {
   }
 }
 
+// Returns {key: value} for all fields in a YAML frontmatter block
+function parseFrontmatter(content) {
+  const match = content.match(/^---\n([\s\S]*?)\n---/)
+  if (!match) return {}
+  const result = {}
+  for (const line of match[1].split("\n")) {
+    const kv = line.match(/^([\w_-]+):\s*(.*)$/)
+    if (kv) result[kv[1]] = kv[2].trim()
+  }
+  return result
+}
+
+// Returns note.content with a frontmatter key updated (or added)
+function updateFrontmatterKey(content, key, value) {
+  const fm = content.match(/^---\n([\s\S]*?)\n---/)
+  if (!fm) return content
+  const existing = new RegExp(`^${key}:.*$`, "m")
+  const updated = existing.test(fm[1])
+    ? fm[1].replace(existing, `${key}: ${value}`)
+    : fm[1] + `\n${key}: ${value}`
+  return content.replace(fm[0], `---\n${updated}\n---`)
+}
+
 function parseContactNote(note) {
   try {
-    const content = note.content
-    let category = ""
-    let frequency = ""
-    let frequencyKey = ""
-    let lastContact = ""
-
-    const categoryMatch = content.match(/\*\*Category\*\*:\s*(.+)/i)
-    if (categoryMatch) category = categoryMatch[1].trim()
-
-    let frequencyMatch = content.match(/\*\*Frequency\*\*:\s*(.+)/i)
-    if (!frequencyMatch) {
-      frequencyMatch = content.match(/\*\*Reminder Frequency\*\*:\s*(.+)/i)
-    }
-    if (frequencyMatch) frequency = frequencyMatch[1].trim()
-
-    let lastContactMatch = content.match(/\*\*Last Contact\*\*:\s*(.+)/i)
-    if (lastContactMatch) lastContact = lastContactMatch[1].trim()
-
-    for (const [key, value] of Object.entries(REMINDER_FREQUENCIES)) {
-      if (value === frequency) {
-        frequencyKey = key
-        break
-      }
-    }
-
-    // Fallback: read the key directly if it was stored in the note
-    if (!frequencyKey) {
-      const keyMatch = content.match(/\*\*Reminder Frequency Key\*\*:\s*(.+)/i)
-      if (keyMatch) frequencyKey = keyMatch[1].trim()
-    }
-
+    const fm = parseFrontmatter(note.content)
     return {
-      category,
-      frequency,
-      frequencyKey,
-      lastContact,
+      category: fm.category || "",
+      frequency: fm.frequency || "",
+      frequencyKey: fm.frequency_key || "",
+      lastContact: fm.last_contact || "",
     }
   } catch (error) {
     console.log(`⚠️ Error parsing contact note: ${error.message}`)
@@ -436,13 +423,15 @@ function parseContactNote(note) {
 
 function createContactNote(name, category, frequency, frequencyKey, tagPrefix) {
   const tag = tagPrefix || SETTINGS.relationshipTag
-  return `# ${name}
+  return `---
+category: ${category}
+frequency: ${frequency}
+frequency_key: ${frequencyKey}
+last_contact: Never
+---
+# ${name}
 
 #${tag}/${category}
-
-**Category**: ${category}
-**Frequency**: ${frequency}
-**Last Contact**: Never
 
 ## Interactions
 `
