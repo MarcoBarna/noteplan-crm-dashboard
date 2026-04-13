@@ -8,7 +8,7 @@ A lightweight CRM plugin for [NotePlan](https://noteplan.co/) that helps you man
 
 - ✅ **Manage Contacts** — Create and organize contacts by category (Client, Colleague, Friend, Family, Business, etc.)
 - ✅ **Log Interactions** — Track every interaction with flexible timestamp formats (date only or date + time)
-- ✅ **Schedule Reminders** — Automatically create calendar reminders for follow-ups based on customizable intervals
+- ✅ **Schedule Reminders** — Automatically create follow-up reminders via Apple Reminders (native notifications) or NotePlan Tasks (visible in notecard/dashboard views)
 - ✅ **CRM Dashboard** — Visual overview of all contacts, upcoming reminders, and overdue follow-ups
 - ✅ **Flexible Configuration** — Customize tags, timestamps, interaction ordering, and navigation behavior
 - ✅ **Sidebar View** — Quick access to your CRM dashboard from NotePlan's sidebar
@@ -62,18 +62,24 @@ Create a new contact in your CRM:
 The contact is created as a `.md` file in your **@CRM** folder with the following structure:
 
 ```markdown
+---
+category: Category Name
+frequency: Connection frequency
+frequency_key: frequencyKey
+last_contact: Never
+---
 # Contact Name
 
 #contact/Category
 
-**Category**: Category Name
-**Frequency**: Connection frequency
-**Last Contact**: Never
+## Tasks
 
 ## Interactions
 ```
 
-**Automatic Reminder**: A calendar reminder is automatically scheduled for the first follow-up based on your chosen frequency.
+Properties are stored in **YAML frontmatter** so they appear as columns in NotePlan's notecard and column views.
+
+**Automatic Reminder**: A follow-up reminder is automatically scheduled based on your chosen frequency and reminder backend (Apple Reminders or NotePlan task).
 
 ### 2. Log Interaction (`li`)
 
@@ -179,9 +185,16 @@ All settings are accessible via the **CRM Settings** command (`crms`).
 
 ### Reminders
 
-**Reminder List** (`crm-reminder-list`)
+**Reminder Backend** (`crm-reminder-backend`)
+- **Options**:
+  - **Reminders**: Apple Reminders — generates native system notifications
+  - **NotePlan**: Tasks written inside the contact note under `## Tasks`, scheduled with `>YYYY-MM-DD` syntax — visible in NotePlan's notecard views and compatible with third-party dashboard plugins
+- **Default**: `Reminders`
+- **Use Case**: Choose "NotePlan" if you use a NotePlan dashboard plugin that aggregates tasks across notes
+
+**Reminder List** (`crm-reminder-list`) *(Apple Reminders only)*
 - **Default**: Empty (uses system default)
-- **Description**: Choose which Reminders list all CRM reminders should be saved to. Leave empty to use NotePlan's default reminder list.
+- **Description**: Choose which Reminders list all CRM reminders should be saved to. Leave empty to use NotePlan's default reminder list. Not used when the backend is set to "NotePlan".
 - **Use Case**: Organize reminders by creating a dedicated "CRM" list or store them in "Work", "Personal", etc.
 - **Configuration**: Set via the **CRM Settings** command to see all available reminder lists
 
@@ -212,13 +225,18 @@ All contacts are stored in the **@CRM** folder as individual markdown files.
 Each contact note follows this structure:
 
 ```markdown
+---
+category: Client
+frequency: Every 2 weeks
+frequency_key: twoWeeks
+last_contact: 2026-04-07
+---
 # Contact Name
 
 #contact/Category
 
-**Category**: Category Name
-**Frequency**: Connection frequency (e.g., "Every week")
-**Last Contact**: Last interaction date or "Never"
+## Tasks
+* [ ] Follow up with Contact Name >2026-04-21
 
 ## Interactions
 <timestamp> <interaction_type> - <notes>
@@ -227,13 +245,18 @@ Each contact note follows this structure:
 
 **Example**:
 ```markdown
+---
+category: Client
+frequency: Every 2 weeks
+frequency_key: twoWeeks
+last_contact: 2026-04-07
+---
 # John Smith
 
 #contact/Client
 
-**Category**: Client
-**Frequency**: Every 2 weeks
-**Last Contact**: 2026-04-07
+## Tasks
+* [ ] Follow up with John Smith >2026-04-21
 
 ## Interactions
 2026-04-07 | 14:30 ☎️ Call - Discussed Q2 deliverables
@@ -243,9 +266,10 @@ Each contact note follows this structure:
 
 ### Note Metadata
 
+- **YAML Frontmatter**: `category`, `frequency`, `frequency_key`, and `last_contact` are stored as frontmatter properties, which appear as columns in NotePlan's notecard and column views
 - **Category Tag**: Used to organize and filter contacts (e.g., `#contact/Client`)
-- **Frequency**: Determines automatic reminder intervals
-- **Last Contact**: Manually or automatically updated to track when you last interacted
+- **Tasks heading**: When using the NotePlan reminder backend, follow-up tasks are written here with a `>YYYY-MM-DD` scheduled date
+- **Interactions heading**: All logged interactions are stored here with a timestamp
 
 ## Workflow Examples
 
@@ -316,6 +340,12 @@ Each contact note follows this structure:
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
 ## Version History
+
+**v1.1.0** — NotePlan task backend & YAML frontmatter properties
+- New **Reminder Backend** setting: choose between Apple Reminders (native notifications) or NotePlan Tasks (tasks stored in the contact note, compatible with NotePlan dashboard plugins)
+- Contact notes now use **YAML frontmatter** for `category`, `frequency`, `frequency_key`, and `last_contact` — these appear as columns in NotePlan's notecard and column views
+- Contact notes now include a `## Tasks` heading for NotePlan task scheduling
+- Reminder list picker is now skipped when the NotePlan backend is selected
 
 **v1.0.1** — Dashboard improvements and reminder list control
 - Click on a contact card in the dashboard to open the contact's note directly

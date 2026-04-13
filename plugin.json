@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.0.1",
+  "plugin.version": "1.1.0",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -98,9 +98,18 @@
       "title": "Reminders"
     },
     {
+      "key": "crm-reminder-backend",
+      "title": "Reminder backend",
+      "description": "Where to store follow-up reminders.\n\n- Reminders: Apple Reminders (shows native notifications)\n- NotePlan: tasks inside the contact note under a ## Tasks heading (visible in NotePlan dashboard/notecard views)",
+      "type": "string",
+      "default": "Reminders",
+      "choices": ["Reminders", "NotePlan"],
+      "required": true
+    },
+    {
       "key": "crm-reminder-list",
-      "title": "Reminder list",
-      "description": "The Reminders list where CRM reminders are saved. Leave empty to use the system default.",
+      "title": "Reminder list (Apple Reminders only)",
+      "description": "The Reminders list where CRM reminders are saved. Leave empty to use the system default. Only used when the reminder backend is set to 'Reminders'.",
       "type": "string",
       "default": ""
     },

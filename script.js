@@ -330,12 +330,22 @@ async function updateSettings() {
     )
     const posVal = positionChoice.index === 0 ? "append" : "prepend"
 
-    // Reminder list picker
-    const reminderLists = Calendar.availableReminderListTitles()
-    const currentList = getSetting("crm-reminder-list", "")
-    const listOptions = ["⬜ Default (system default)", ...reminderLists.map(l => (l === currentList ? "✅ " : "") + l)]
-    const listChoice = await CommandBar.showOptions(listOptions, "Which Reminders list should CRM use?")
-    const listVal = listChoice.index === 0 ? "" : reminderLists[listChoice.index - 1]
+    // Reminder backend picker
+    const backendChoice = await CommandBar.showOptions(
+      ["🔔 Apple Reminders (native notifications)", "📝 NotePlan Tasks (visible in notecard views)"],
+      "Where should CRM store follow-up reminders?"
+    )
+    const backendVal = backendChoice.index === 0 ? "Reminders" : "NotePlan"
+
+    // Reminder list picker (only relevant for Apple Reminders)
+    let listVal = ""
+    if (backendVal === "Reminders") {
+      const reminderLists = Calendar.availableReminderListTitles()
+      const currentList = getSetting("crm-reminder-list", "")
+      const listOptions = ["⬜ Default (system default)", ...reminderLists.map(l => (l === currentList ? "✅ " : "") + l)]
+      const listChoice = await CommandBar.showOptions(listOptions, "Which Reminders list should CRM use?")
+      listVal = listChoice.index === 0 ? "" : reminderLists[listChoice.index - 1]
+    }
 
     // Save settings via DataStore.settings
     DataStore.settings = {
@@ -344,6 +354,7 @@ async function updateSettings() {
       "crm-navigate-after-interaction": navVal,
       "crm-interaction-datetime": dtVal,
       "crm-interaction-position": posVal,
+      "crm-reminder-backend": backendVal,
       "crm-reminder-list": listVal,
     }
 
@@ -364,12 +375,13 @@ function getRelationships() {
 
     // Get the current tag prefix from settings
     const tagPrefix = getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
-    const requiredTag = `#${tagPrefix}/`
+    const requiredTagPrefix = tagPrefix + "/"
 
     const relationships = folderNotes
       .map((note) => {
-        // Verify that it is a valid contact (has the configured tag)
-        if (!note.content.includes(requiredTag)) return null
+        // Verify that it is a valid contact (has the configured tag in frontmatter)
+        const fm = parseFrontmatter(note.content)
+        if (!fm.tags || !fm.tags.includes(requiredTagPrefix)) return null
         const rel = parseContactNote(note)
         if (!rel) return null
         return { name: note.title, filename: note.filename, ...rel }
@@ -428,16 +440,26 @@ category: ${category}
 frequency: ${frequency}
 frequency_key: ${frequencyKey}
 last_contact: Never
+tags: ${tag}/${category}
 ---
 # ${name}
 
-#${tag}/${category}
+## Tasks
 
 ## Interactions
 `
 }
 
 function scheduleCalendarReminder(title, date, noteFilename) {
+  const backend = getSetting("crm-reminder-backend", "Reminders")
+  if (backend === "NotePlan") {
+    scheduleNoteplanTask(title, date, noteFilename)
+  } else {
+    scheduleAppleReminder(title, date, noteFilename)
+  }
+}
+
+function scheduleAppleReminder(title, date, noteFilename) {
   try {
     const list = getSetting("crm-reminder-list", "")
     const item = CalendarItem.create(
@@ -446,7 +468,33 @@ function scheduleCalendarReminder(title, date, noteFilename) {
     )
     Calendar.add(item)
   } catch (error) {
-    console.log(`❌ Error scheduling reminder: ${error.message}`)
+    console.log(`❌ Error scheduling Apple reminder: ${error.message}`)
+  }
+}
+
+function scheduleNoteplanTask(title, date, noteFilename) {
+  try {
+    const filename = noteFilename
+    const note = DataStore.projectNoteByFilename(filename)
+    if (!note) {
+      console.log(`❌ Could not open note for NP task: ${filename}`)
+      return
+    }
+
+    const dateStr = formatDate(date)
+    const taskText = `${title} >${dateStr}`
+
+    const tasksHeading = note.paragraphs.find(
+      p => p.type === "title" && p.content.trim() === "Tasks"
+    )
+    if (tasksHeading) {
+      note.insertParagraph(taskText, tasksHeading.lineIndex + 1, "open")
+    } else {
+      note.appendParagraph("## Tasks", "empty")
+      note.appendParagraph(taskText, "open")
+    }
+  } catch (error) {
+    console.log(`❌ Error scheduling NotePlan task: ${error.message}`)
   }
 }
 
@@ -457,9 +505,16 @@ function scheduleNextReminder(contactName, frequencyKey, noteFilename) {
 }
 
 async function completeContactReminder(contactName) {
+  const backend = getSetting("crm-reminder-backend", "Reminders")
+  if (backend === "NotePlan") {
+    completeNoteplanTask(contactName)
+  } else {
+    await completeAppleReminder(contactName)
+  }
+}
+
+async function completeAppleReminder(contactName) {
   try {
-    // Search in a wide range: from 2 years ago to 2 years in the future
-    // This ensures any reminder for the contact, even future ones, is completed
     const from = new Date()
     from.setFullYear(from.getFullYear() - 2)
     const to = new Date()
@@ -477,7 +532,27 @@ async function completeContactReminder(contactName) {
       await Calendar.update(reminder)
     }
   } catch (error) {
-    console.log(`⚠️ Could not complete reminder: ${error.message}`)
+    console.log(`⚠️ Could not complete Apple reminder: ${error.message}`)
+  }
+}
+
+function completeNoteplanTask(contactName) {
+  try {
+    const folderNotes = DataStore.projectNotes.filter(
+      (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
+    )
+    for (const note of folderNotes) {
+      if (!note.title || note.title.toLowerCase() !== contactName.toLowerCase()) continue
+      for (const p of note.paragraphs) {
+        if (p.type === "open" && p.content.toLowerCase().includes(contactName.toLowerCase())) {
+          p.type = "done"
+          note.updateParagraph(p)
+        }
+      }
+      break
+    }
+  } catch (error) {
+    console.log(`⚠️ Could not complete NotePlan task: ${error.message}`)
   }
 }
 
@@ -508,11 +583,45 @@ async function refreshDashboardIfOpen() {
       .replace(/>/g, "\\u003e")
     const reminderList = getSetting("crm-reminder-list", "")
     const reminderListJSON = JSON.stringify(reminderList)
+    const reminderBackend = getSetting("crm-reminder-backend", "Reminders")
+    const reminderBackendJSON = JSON.stringify(reminderBackend)
+    const npTasks = reminderBackend === "NotePlan" ? getCRMTasks() : []
+    const npTasksJSON = JSON.stringify(npTasks)
+      .replace(/</g, "\\u003c")
+      .replace(/>/g, "\\u003e")
     await dashWindow.runJavaScript(
-      "if (typeof updateContacts === 'function') { updateContacts(" + contactsJSON + ", " + reminderListJSON + "); }"
+      "if (typeof updateContacts === 'function') { updateContacts(" + contactsJSON + ", " + reminderListJSON + ", " + reminderBackendJSON + ", " + npTasksJSON + "); }"
     )
   } catch (error) {
     console.log(`⚠️ Could not refresh dashboard in place: ${error.message}`)
+  }
+}
+
+function getCRMTasks() {
+  try {
+    const folderNotes = DataStore.projectNotes.filter(
+      (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
+    )
+    const tasks = []
+    for (const note of folderNotes) {
+      for (const p of note.paragraphs) {
+        if (p.type !== "open") continue
+        const dateMatch = p.content.match(/>(\d{4}-\d{2}-\d{2})/)
+        if (!dateMatch) continue
+        const title = p.content.replace(/>(\d{4}-\d{2}-\d{2})/, "").trim()
+        tasks.push({
+          title: title,
+          date: dateMatch[1],
+          contact: note.title || "",
+          filename: note.filename,
+        })
+      }
+    }
+    tasks.sort(function(a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0 })
+    return tasks
+  } catch (error) {
+    console.log(`❌ Error getting CRM tasks: ${error.message}`)
+    return []
   }
 }
 
@@ -562,6 +671,14 @@ function getCRMDashboardHTML(contacts) {
 
   const reminderList = getSetting("crm-reminder-list", "")
   const reminderListJSON = JSON.stringify(reminderList)
+
+  const reminderBackend = getSetting("crm-reminder-backend", "Reminders")
+  const reminderBackendJSON = JSON.stringify(reminderBackend)
+
+  const npTasks = reminderBackend === "NotePlan" ? getCRMTasks() : []
+  const npTasksJSON = JSON.stringify(npTasks)
+    .replace(/</g, "\\u003c")
+    .replace(/>/g, "\\u003e")
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -734,6 +851,8 @@ function getCRMDashboardHTML(contacts) {
   // Data injected by the plugin
   var CONTACTS = ${contactsJSON};
   var REMINDER_LIST = ${reminderListJSON};
+  var REMINDER_BACKEND = ${reminderBackendJSON};
+  var NP_TASKS = ${npTasksJSON};
   var activeFilter = 'All';
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -837,6 +956,12 @@ function getCRMDashboardHTML(contacts) {
 
   async function renderReminders() {
     var el = document.getElementById('reminders');
+
+    if (REMINDER_BACKEND === 'NotePlan') {
+      renderNoteplanTasks(el);
+      return;
+    }
+
     try {
       var now = new Date();
       var todayStart = new Date(now);
@@ -844,7 +969,6 @@ function getCRMDashboardHTML(contacts) {
       var todayEnd = new Date(now);
       todayEnd.setHours(23, 59, 59, 999);
 
-      // Overdue: from the oldest date to the end of yesterday (excluding today)
       var pastStart = new Date(todayStart);
       pastStart.setFullYear(pastStart.getFullYear() - 2);
       var yesterdayEnd = new Date(todayStart);
@@ -858,7 +982,6 @@ function getCRMDashboardHTML(contacts) {
 
       var overdueRaw = (await Calendar.remindersBetween(pastStart, yesterdayEnd, '')).filter(isCrmReminder);
 
-      // Upcoming: from today (inclusive) to the end of the week
       var endOfWeek = new Date(todayStart);
       endOfWeek.setDate(endOfWeek.getDate() + (6 - todayStart.getDay()));
       endOfWeek.setHours(23, 59, 59, 999);
@@ -870,7 +993,6 @@ function getCRMDashboardHTML(contacts) {
 
       var html = '';
 
-      // Show overdue at the top with red label
       if (overdueRaw.length > 0) {
         html += '<div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Overdue</div>';
         html += overdueRaw.map(function(r) {
@@ -881,7 +1003,6 @@ function getCRMDashboardHTML(contacts) {
         }).join('');
       }
 
-      // Show upcoming
       if (upcoming.length > 0) {
         if (overdueRaw.length > 0) {
           html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
@@ -904,6 +1025,62 @@ function getCRMDashboardHTML(contacts) {
       el.innerHTML = '<div class="empty">Could not load reminders: ' + esc(e.message) + '</div>';
       document.getElementById('upcomingReminders').textContent = '?';
       document.getElementById('overdueCount').textContent = '?';
+    }
+  }
+
+  function renderNoteplanTasks(el) {
+    var now = new Date();
+    var todayStr = now.getFullYear() + '-' +
+      String(now.getMonth() + 1).padStart(2, '0') + '-' +
+      String(now.getDate()).padStart(2, '0');
+    var todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+
+    var endOfWeek = new Date(todayStart);
+    endOfWeek.setDate(endOfWeek.getDate() + (6 - todayStart.getDay()));
+    var endOfWeekStr = endOfWeek.getFullYear() + '-' +
+      String(endOfWeek.getMonth() + 1).padStart(2, '0') + '-' +
+      String(endOfWeek.getDate()).padStart(2, '0');
+
+    var overdue = [];
+    var upcoming = [];
+
+    for (var i = 0; i < NP_TASKS.length; i++) {
+      var t = NP_TASKS[i];
+      if (t.date < todayStr) overdue.push(t);
+      else if (t.date <= endOfWeekStr) upcoming.push(t);
+    }
+
+    document.getElementById('upcomingReminders').textContent = upcoming.length;
+    document.getElementById('overdueCount').textContent = overdue.length;
+
+    var html = '';
+
+    if (overdue.length > 0) {
+      html += '<div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Overdue</div>';
+      html += overdue.map(function(t) {
+        return '<div class="card" style="border-left:3px solid #FF3B30;">' +
+          '<div class="card-title">' + esc(t.title) + '</div>' +
+          '<div class="card-meta"><span style="color:#FF3B30;">' + esc(t.date) + '</span>' +
+          (t.contact ? ' <span>👤 ' + esc(t.contact) + '</span>' : '') + '</div></div>';
+      }).join('');
+    }
+
+    if (upcoming.length > 0) {
+      if (overdue.length > 0) {
+        html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
+      }
+      html += upcoming.map(function(t) {
+        return '<div class="card">' +
+          '<div class="card-title">' + esc(t.title) + '</div>' +
+          '<div class="card-meta"><span>' + esc(t.date) + '</span>' +
+          (t.contact ? ' <span>👤 ' + esc(t.contact) + '</span>' : '') + '</div></div>';
+      }).join('');
+    }
+
+    if (html === '') {
+      el.innerHTML = '<div class="empty">No tasks this week 🎉</div>';
+    } else {
+      el.innerHTML = html;
     }
   }
 
@@ -939,9 +1116,11 @@ function getCRMDashboardHTML(contacts) {
   }
 
   // Called by the plugin via runJavaScript to update data without reloading the page
-  function updateContacts(newContacts, newReminderList) {
+  function updateContacts(newContacts, newReminderList, newBackend, newNpTasks) {
     CONTACTS = newContacts;
     if (newReminderList !== undefined) REMINDER_LIST = newReminderList;
+    if (newBackend !== undefined) REMINDER_BACKEND = newBackend;
+    if (newNpTasks !== undefined) NP_TASKS = newNpTasks;
     buildCategoryFilters();
     renderContacts();
     renderReminders();
