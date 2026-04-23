@@ -54,10 +54,9 @@ Create a new contact in your CRM:
    - **Colleague** — Work peer
    - **Friend** — Personal friend
    - **Family** — Family member
-   - **Business** — Business entity (company, vendor, etc.)
-   - **Other** — Uncategorized
+   - Any custom categories you've defined in Settings
 4. Select how often you want to connect with this contact:
-   - Every day, week, 2 weeks, 3 weeks, month, 2 months, 3 months, 6 months, or yearly
+   - Every day, week, 2 weeks, 3 weeks, month, 2 months, 3 months, 6 months, yearly, or **Never**
 
 The contact is created as a `.md` file in your **@CRM** folder with the following structure:
 
@@ -67,19 +66,20 @@ category: Category Name
 frequency: Connection frequency
 frequency_key: frequencyKey
 last_contact: Never
+tags: contact/Category
 ---
 # Contact Name
 
-#contact/Category
+## Photo
 
 ## Tasks
 
 ## Interactions
 ```
 
-Properties are stored in **YAML frontmatter** so they appear as columns in NotePlan's notecard and column views.
+Properties are stored in **YAML frontmatter** so they appear as columns in NotePlan's notecard and column views. The `tags` field is used internally to identify and filter contacts.
 
-**Automatic Reminder**: A follow-up reminder is automatically scheduled based on your chosen frequency and reminder backend (Apple Reminders or NotePlan task).
+**Automatic Reminder**: A follow-up reminder is automatically scheduled based on your chosen frequency and reminder backend (Apple Reminders or NotePlan task). If you select **Never**, no reminder is created.
 
 ### 2. Log Interaction (`li`)
 
@@ -167,6 +167,12 @@ All settings are accessible via the **CRM Settings** command (`crms`).
 - **Description**: The hashtag prefix used to categorize contacts
 - **Example**: With default value, contacts are tagged as `#contact/Client`, `#contact/Friend`, etc.
 
+**Custom Categories** (`crm-custom-categories`)
+- **Default**: Empty
+- **Description**: Additional contact categories beyond the built-in defaults (Client, Colleague, Friend, Family). Enter a comma-separated list.
+- **Example**: `Mentor, Investor, Partner`
+- **Use Case**: Extend the category list to match your specific relationship types
+
 ### Interaction Logging
 
 **Timestamp Format** (`crm-interaction-datetime`)
@@ -230,10 +236,11 @@ category: Client
 frequency: Every 2 weeks
 frequency_key: twoWeeks
 last_contact: 2026-04-07
+tags: contact/Client
 ---
 # Contact Name
 
-#contact/Category
+## Photo
 
 ## Tasks
 * [ ] Follow up with Contact Name >2026-04-21
@@ -250,10 +257,11 @@ category: Client
 frequency: Every 2 weeks
 frequency_key: twoWeeks
 last_contact: 2026-04-07
+tags: contact/Client
 ---
 # John Smith
 
-#contact/Client
+## Photo
 
 ## Tasks
 * [ ] Follow up with John Smith >2026-04-21
@@ -266,8 +274,9 @@ last_contact: 2026-04-07
 
 ### Note Metadata
 
-- **YAML Frontmatter**: `category`, `frequency`, `frequency_key`, and `last_contact` are stored as frontmatter properties, which appear as columns in NotePlan's notecard and column views
-- **Category Tag**: Used to organize and filter contacts (e.g., `#contact/Client`)
+- **YAML Frontmatter**: `category`, `frequency`, `frequency_key`, `last_contact`, and `tags` are stored as frontmatter properties, which appear as columns in NotePlan's notecard and column views
+- **`tags` field**: Used internally by the plugin to identify and filter contacts (e.g., `contact/Client`)
+- **Photo heading**: Reserved section for attaching a contact photo
 - **Tasks heading**: When using the NotePlan reminder backend, follow-up tasks are written here with a `>YYYY-MM-DD` scheduled date
 - **Interactions heading**: All logged interactions are stored here with a timestamp
 
@@ -340,6 +349,13 @@ last_contact: 2026-04-07
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
 ## Version History
+
+**v1.2.0** — Custom categories & photo section
+- New **Custom Categories** setting (`crm-custom-categories`): extend the built-in contact categories with a comma-separated list of your own (e.g. Mentor, Investor, Partner)
+- Built-in default categories reduced to Client, Colleague, Friend, Family — add others via the new setting
+- Contact notes now include a `## Photo` section for attaching a contact photo
+- Contact notes now use a `tags` frontmatter field (e.g. `tags: contact/Client`) instead of an inline hashtag; contacts are filtered using this field
+- Added **Never** as a valid reminder frequency (no reminder is created)
 
 **v1.1.0** — NotePlan task backend & YAML frontmatter properties
 - New **Reminder Backend** setting: choose between Apple Reminders (native notifications) or NotePlan Tasks (tasks stored in the contact note, compatible with NotePlan dashboard plugins)

@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.1.0",
+  "plugin.version": "1.2.0",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -64,6 +64,13 @@
       "type": "string",
       "default": "contact",
       "required": true
+    },
+    {
+      "key": "crm-custom-categories",
+      "title": "Custom categories",
+      "description": "Additional contact categories beyond the defaults (Client, Colleague, Friend, Family, Business, Other). Enter a comma-separated list, e.g. Mentor, Investor, Partner.",
+      "type": "string",
+      "default": ""
     },
     {
       "type": "heading",

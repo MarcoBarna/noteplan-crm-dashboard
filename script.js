@@ -34,6 +34,7 @@ const REMINDER_FREQUENCIES = {
   quarter: "Every 3 months",
   sixMonths: "Every 6 months",
   year: "Every year",
+  never: "Never",
 }
 
 const WINDOW_ID = "np.jokky102.crm.main"
@@ -49,8 +50,15 @@ async function addRelationship() {
     )
     if (!name) return
 
+    const defaultCategories = ["Client", "Colleague", "Friend", "Family"]
+    const customCatsRaw = getSetting("crm-custom-categories", "")
+    const customCats = typeof customCatsRaw === "string" && customCatsRaw.trim()
+      ? customCatsRaw.split(",").map(s => s.trim()).filter(s => s.length > 0)
+      : []
+    const allCategories = [...defaultCategories, ...customCats]
+
     const category = await CommandBar.showOptions(
-      ["Client", "Colleague", "Friend", "Family", "Business", "Other"],
+      allCategories,
       "Select category for " + name
     )
 
@@ -77,7 +85,9 @@ async function addRelationship() {
       `${name.replace(/[\/\\:*?"<>|]/g, "")}.md`
     )
 
-    scheduleNextReminder(name, reminderFreqKey, filename)
+    if (reminderFreqKey !== "never") {
+      scheduleNextReminder(name, reminderFreqKey, filename)
+    }
 
     await CommandBar.prompt(
       "Contact created!",
@@ -220,7 +230,7 @@ async function logInteractionWithReminder() {
     await completeContactReminder(contact.name)
 
     // ✅ Create the next reminder if configured
-    const hasValidFreqKey = contact.frequencyKey && contact.frequencyKey.trim() !== ""
+    const hasValidFreqKey = contact.frequencyKey && contact.frequencyKey.trim() !== "" && contact.frequencyKey !== "never"
     if (hasValidFreqKey) {
       try {
         const nextDate = getNextReminderDate(contact.frequencyKey)
@@ -347,6 +357,17 @@ async function updateSettings() {
       listVal = listChoice.index === 0 ? "" : reminderLists[listChoice.index - 1]
     }
 
+    // Custom categories
+    const currentCustomCats = getSetting("crm-custom-categories", "")
+    const customCatsInput = await CommandBar.showInput(
+      "Custom categories (comma-separated, e.g. Mentor, Investor)",
+      "Categories: '%@'",
+      currentCustomCats
+    )
+    const customCatsVal = customCatsInput !== null && customCatsInput !== undefined
+      ? customCatsInput
+      : currentCustomCats
+
     // Save settings via DataStore.settings
     DataStore.settings = {
       ...DataStore.settings,
@@ -356,6 +377,7 @@ async function updateSettings() {
       "crm-interaction-position": posVal,
       "crm-reminder-backend": backendVal,
       "crm-reminder-list": listVal,
+      "crm-custom-categories": customCatsVal,
     }
 
     await refreshDashboardIfOpen()
@@ -443,6 +465,8 @@ last_contact: Never
 tags: ${tag}/${category}
 ---
 # ${name}
+
+## Photo
 
 ## Tasks
 
