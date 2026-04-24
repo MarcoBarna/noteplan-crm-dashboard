@@ -373,17 +373,6 @@ tags: contact/Client
 - Contact notes now include a `## Tasks` heading for NotePlan task scheduling
 - Reminder list picker is now skipped when the NotePlan backend is selected
 
-**v1.0.1** — Dashboard improvements and reminder list control
-- Click on a contact card in the dashboard to open the contact's note directly
-- Choose which Reminders list to use for CRM reminders (new **Reminder List** setting)
-- Fixed dashboard button command names
-- Improved dashboard refresh when settings change
-
-**v1.0.0** — Initial release
-- Core CRM functionality with contacts, interactions, and reminders
-- CRM Dashboard with statistics and filtering
-- Fully customizable settings
-
 ## Author
 
 Created by **jokky102**
