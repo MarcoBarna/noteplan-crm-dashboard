@@ -2,11 +2,11 @@
   "noteplan.minAppVersion": "3.20.0",
   "plugin.id": "np.jokky102.crm",
   "plugin.name": "📇 CRM",
-  "plugin.description": "A simple CRM for NotePlan. Manage contacts, log interactions, and schedule follow-up reminders — all stored as notes in your @CRM folder.",
+  "plugin.description": "A simple CRM for NotePlan. Manage contacts, log interactions, and schedule follow-up reminders — all stored as notes in your CRM folder.",
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.2.0",
+  "plugin.version": "1.2.5",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -56,6 +56,14 @@
     {
       "type": "heading",
       "title": "Contact & Folder"
+    },
+    {
+      "key": "crm-data-folder",
+      "title": "CRM folder",
+      "description": "The NotePlan folder where contact notes are stored. Defaults to '@CRM'. You can use a nested path, e.g. 'Work/CRM'.",
+      "type": "string",
+      "default": "@CRM",
+      "required": true
     },
     {
       "key": "crm-relationship-tag",

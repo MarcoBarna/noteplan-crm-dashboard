@@ -1,6 +1,6 @@
 # 📇 CRM Dashboard for NotePlan
 
-A lightweight CRM plugin for [NotePlan](https://noteplan.co/) that helps you manage contacts, log interactions, and schedule follow-up reminders—all stored as notes in your @CRM folder.
+A lightweight CRM plugin for [NotePlan](https://noteplan.co/) that helps you manage contacts, log interactions, and schedule follow-up reminders—all stored as notes in a configurable folder (default: `@CRM`).
 
 ![Crm Dashboard](screenshot.png)
 
@@ -58,7 +58,7 @@ Create a new contact in your CRM:
 4. Select how often you want to connect with this contact:
    - Every day, week, 2 weeks, 3 weeks, month, 2 months, 3 months, 6 months, yearly, or **Never**
 
-The contact is created as a `.md` file in your **@CRM** folder with the following structure:
+The contact is created as a `.md` file in your **CRM folder** (default: `@CRM`, configurable via Settings) with the following structure:
 
 ```markdown
 ---
@@ -162,6 +162,12 @@ All settings are accessible via the **CRM Settings** command (`crms`).
 
 ### Contact & Folder
 
+**CRM Folder** (`crm-data-folder`)
+- **Default**: `@CRM`
+- **Description**: The NotePlan folder where all contact notes are stored. You can use any folder name or a nested path.
+- **Example**: `@CRM`, `Work/CRM`, `Contacts`
+- **Use Case**: Move your CRM data to a different folder without losing existing contacts (update the setting then move the files)
+
 **Contact Tag Prefix** (`crm-relationship-tag`)
 - **Default**: `contact`
 - **Description**: The hashtag prefix used to categorize contacts
@@ -216,7 +222,7 @@ All settings are accessible via the **CRM Settings** command (`crms`).
 
 ### Folder Organization
 
-All contacts are stored in the **@CRM** folder as individual markdown files.
+All contacts are stored in your configured **CRM folder** (default: `@CRM`) as individual markdown files.
 
 ```
 @CRM/
@@ -335,7 +341,7 @@ tags: contact/Client
 ## Troubleshooting
 
 ### Contacts not appearing in the dashboard
-- Ensure contacts are saved in the **@CRM** folder
+- Ensure contacts are saved in the folder configured in **CRM Settings** (`crm-data-folder`, default: `@CRM`)
 - Check that contact files follow the required markdown format
 - Try refreshing the dashboard by running `Show CRM Dashboard` again
 
@@ -349,6 +355,10 @@ tags: contact/Client
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
 ## Version History
+
+**v1.2.5** — Configurable CRM folder
+- New **CRM Folder** setting (`crm-data-folder`): choose any folder (or nested path) where contact notes are stored — defaults to `@CRM`
+- Setting is available both in the **CRM Settings** command and in NotePlan's Plugin Preferences
 
 **v1.2.0** — Custom categories & photo section
 - New **Custom Categories** setting (`crm-custom-categories`): extend the built-in contact categories with a comma-separated list of your own (e.g. Mentor, Investor, Partner)

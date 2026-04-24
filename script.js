@@ -81,7 +81,7 @@ async function addRelationship() {
 
     const filename = DataStore.newNoteWithContent(
       noteContent,
-      SETTINGS.dataFolder,
+      getDataFolder(),
       `${name.replace(/[\/\\:*?"<>|]/g, "")}.md`
     )
 
@@ -357,6 +357,15 @@ async function updateSettings() {
       listVal = listChoice.index === 0 ? "" : reminderLists[listChoice.index - 1]
     }
 
+    // CRM folder
+    const currentFolder = getSetting("crm-data-folder", SETTINGS.dataFolder)
+    const folderInput = await CommandBar.showInput(
+      "CRM folder name (e.g. @CRM, Work/CRM)",
+      "Folder: '%@'",
+      currentFolder
+    )
+    const folderVal = folderInput && folderInput.trim() ? folderInput.trim() : currentFolder
+
     // Custom categories
     const currentCustomCats = getSetting("crm-custom-categories", "")
     const customCatsInput = await CommandBar.showInput(
@@ -377,6 +386,7 @@ async function updateSettings() {
       "crm-interaction-position": posVal,
       "crm-reminder-backend": backendVal,
       "crm-reminder-list": listVal,
+      "crm-data-folder": folderVal,
       "crm-custom-categories": customCatsVal,
     }
 
@@ -388,11 +398,15 @@ async function updateSettings() {
 
 // HELPER FUNCTIONS
 
+function getDataFolder() {
+  return getSetting("crm-data-folder", SETTINGS.dataFolder)
+}
+
 function getRelationships() {
   try {
     
     const folderNotes = DataStore.projectNotes.filter(
-      (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
+      (n) => n.filename && n.filename.startsWith(getDataFolder() + "/")
     )
 
     // Get the current tag prefix from settings
@@ -524,7 +538,7 @@ function scheduleNoteplanTask(title, date, noteFilename) {
 
 function scheduleNextReminder(contactName, frequencyKey, noteFilename) {
   const date = getNextReminderDate(frequencyKey)
-  const filename = noteFilename || `${SETTINGS.dataFolder}/${contactName}.md`
+  const filename = noteFilename || `${getDataFolder()}/${contactName}.md`
   scheduleCalendarReminder(`Follow up with ${contactName}`, date, filename)
 }
 
@@ -563,7 +577,7 @@ async function completeAppleReminder(contactName) {
 function completeNoteplanTask(contactName) {
   try {
     const folderNotes = DataStore.projectNotes.filter(
-      (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
+      (n) => n.filename && n.filename.startsWith(getDataFolder() + "/")
     )
     for (const note of folderNotes) {
       if (!note.title || note.title.toLowerCase() !== contactName.toLowerCase()) continue
@@ -624,7 +638,7 @@ async function refreshDashboardIfOpen() {
 function getCRMTasks() {
   try {
     const folderNotes = DataStore.projectNotes.filter(
-      (n) => n.filename && n.filename.startsWith(SETTINGS.dataFolder + "/")
+      (n) => n.filename && n.filename.startsWith(getDataFolder() + "/")
     )
     const tasks = []
     for (const note of folderNotes) {
