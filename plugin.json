@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.2.5",
+  "plugin.version": "1.3.0",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -125,6 +125,20 @@
       "key": "crm-reminder-list",
       "title": "Reminder list (Apple Reminders only)",
       "description": "The Reminders list where CRM reminders are saved. Leave empty to use the system default. Only used when the reminder backend is set to 'Reminders'.",
+      "type": "string",
+      "default": ""
+    },
+    {
+      "key": "crm-reminder-prefix",
+      "title": "Reminder message prefix",
+      "description": "The text that appears before the contact name in automatic reminders. Examples: 'Follow up with', 'Reach out to', 'Check in with'.",
+      "type": "string",
+      "default": "Follow up with"
+    },
+    {
+      "key": "crm-reminder-tag",
+      "title": "Reminder tag",
+      "description": "Optional tag appended to automatic reminder titles, e.g. '#follow-up' produces 'Follow up with John #follow-up'. Leave empty for no tag.",
       "type": "string",
       "default": ""
     },

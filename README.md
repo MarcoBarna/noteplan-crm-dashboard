@@ -8,7 +8,7 @@ A lightweight CRM plugin for [NotePlan](https://noteplan.co/) that helps you man
 
 - ✅ **Manage Contacts** — Create and organize contacts by category (Client, Colleague, Friend, Family, Business, etc.)
 - ✅ **Log Interactions** — Track every interaction with flexible timestamp formats (date only or date + time)
-- ✅ **Schedule Reminders** — Automatically create follow-up reminders via Apple Reminders (native notifications) or NotePlan Tasks (visible in notecard/dashboard views)
+- ✅ **Schedule Reminders** — Automatically create follow-up reminders via Apple Reminders (native notifications) or NotePlan Tasks (visible in notecard/dashboard views), with a fully customizable message prefix and tag
 - ✅ **CRM Dashboard** — Visual overview of all contacts, upcoming reminders, and overdue follow-ups
 - ✅ **Flexible Configuration** — Customize tags, timestamps, interaction ordering, and navigation behavior
 - ✅ **Sidebar View** — Quick access to your CRM dashboard from NotePlan's sidebar
@@ -210,6 +210,18 @@ All settings are accessible via the **CRM Settings** command (`crms`).
 - **Use Case**: Organize reminders by creating a dedicated "CRM" list or store them in "Work", "Personal", etc.
 - **Configuration**: Set via the **CRM Settings** command to see all available reminder lists
 
+**Reminder Message Prefix** (`crm-reminder-prefix`)
+- **Default**: `Follow up with`
+- **Description**: The text placed before the contact name in all automatic reminders.
+- **Examples**: `Follow up with`, `Reach out to`, `Check in with`
+- **Result**: `Follow up with John Smith`
+
+**Reminder Tag** (`crm-reminder-tag`)
+- **Default**: Empty (no tag)
+- **Description**: An optional tag appended to automatic reminder titles.
+- **Example**: setting `#follow-up` produces `Follow up with John Smith #follow-up`
+- **Use Case**: Tag reminders for filtering in Apple Reminders or NotePlan views
+
 ### Navigation
 
 **Open Contact Note After Logging Interaction** (`crm-navigate-after-interaction`)
@@ -270,7 +282,7 @@ tags: contact/Client
 ## Photo
 
 ## Tasks
-* [ ] Follow up with John Smith >2026-04-21
+* [ ] Follow up with John Smith #follow-up >2026-04-21
 
 ## Interactions
 2026-04-07 | 14:30 ☎️ Call - Discussed Q2 deliverables
@@ -355,6 +367,11 @@ tags: contact/Client
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
 ## Version History
+
+**v1.3.0** — Customizable reminder messages
+- New **Reminder Message Prefix** setting (`crm-reminder-prefix`): change the text before the contact name in automatic reminders (e.g. `Reach out to`, `Check in with`)
+- New **Reminder Tag** setting (`crm-reminder-tag`): append an optional tag to all reminder titles (e.g. `#follow-up` → `Follow up with John #follow-up`)
+- Both settings are available in the **CRM Settings** command and in NotePlan's Plugin Preferences
 
 **v1.2.5** — Configurable CRM folder
 - New **CRM Folder** setting (`crm-data-folder`): choose any folder (or nested path) where contact notes are stored — defaults to `@CRM`

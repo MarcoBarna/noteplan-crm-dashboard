@@ -234,7 +234,7 @@ async function logInteractionWithReminder() {
     if (hasValidFreqKey) {
       try {
         const nextDate = getNextReminderDate(contact.frequencyKey)
-        scheduleCalendarReminder(`Follow up with ${contact.name}`, nextDate, contact.filename)
+        scheduleCalendarReminder(buildReminderTitle(contact.name), nextDate, contact.filename)
       } catch (reminderError) {
         console.log(`❌ Error creating reminder: ${reminderError.message}`)
       }
@@ -377,6 +377,26 @@ async function updateSettings() {
       ? customCatsInput
       : currentCustomCats
 
+    // Reminder prefix
+    const currentReminderPrefix = getSetting("crm-reminder-prefix", "Follow up with")
+    const prefixInput = await CommandBar.showInput(
+      "Reminder prefix (e.g. Follow up with, Reach out to, Check in with)",
+      "Prefix: '%@'",
+      currentReminderPrefix
+    )
+    const prefixVal = prefixInput && prefixInput.trim() ? prefixInput.trim() : currentReminderPrefix
+
+    // Reminder tag
+    const currentReminderTag = getSetting("crm-reminder-tag", "")
+    const reminderTagInput = await CommandBar.showInput(
+      "Optional tag appended to reminders (e.g. #follow-up). Leave empty for none.",
+      "Tag: '%@'",
+      currentReminderTag
+    )
+    const reminderTagVal = reminderTagInput !== null && reminderTagInput !== undefined
+      ? reminderTagInput.trim()
+      : currentReminderTag
+
     // Save settings via DataStore.settings
     DataStore.settings = {
       ...DataStore.settings,
@@ -388,6 +408,8 @@ async function updateSettings() {
       "crm-reminder-list": listVal,
       "crm-data-folder": folderVal,
       "crm-custom-categories": customCatsVal,
+      "crm-reminder-prefix": prefixVal,
+      "crm-reminder-tag": reminderTagVal,
     }
 
     await refreshDashboardIfOpen()
@@ -400,6 +422,13 @@ async function updateSettings() {
 
 function getDataFolder() {
   return getSetting("crm-data-folder", SETTINGS.dataFolder)
+}
+
+function buildReminderTitle(contactName) {
+  const prefix = getSetting("crm-reminder-prefix", "Follow up with")
+  const tag = getSetting("crm-reminder-tag", "")
+  const tagSuffix = tag && tag.trim() ? " " + tag.trim() : ""
+  return `${prefix} ${contactName}${tagSuffix}`
 }
 
 function getRelationships() {
@@ -539,7 +568,7 @@ function scheduleNoteplanTask(title, date, noteFilename) {
 function scheduleNextReminder(contactName, frequencyKey, noteFilename) {
   const date = getNextReminderDate(frequencyKey)
   const filename = noteFilename || `${getDataFolder()}/${contactName}.md`
-  scheduleCalendarReminder(`Follow up with ${contactName}`, date, filename)
+  scheduleCalendarReminder(buildReminderTitle(contactName), date, filename)
 }
 
 async function completeContactReminder(contactName) {
