@@ -48,15 +48,11 @@ The **CRM Dashboard** can be accessed from the NotePlan sidebar by clicking the 
 Create a new contact in your CRM:
 
 1. Run **Add Contact** command
-2. Enter the contact's name
-3. Select a category:
-   - **Client** — Business/professional contact
-   - **Colleague** — Work peer
-   - **Friend** — Personal friend
-   - **Family** — Family member
-   - Any custom categories you've defined in Settings
-4. Select how often you want to connect with this contact:
-   - Every day, week, 2 weeks, 3 weeks, month, 2 months, 3 months, 6 months, yearly, or **Never**
+2. A single form appears with three fields:
+   - **Name** — the contact's name (required)
+   - **Category** — Client, Colleague, Friend, Family, or any custom categories from Settings (required)
+   - **Connect frequency** — Every day, week, 2 weeks, 3 weeks, month, 2 months, 3 months, 6 months, yearly, or **Never** (required)
+3. Press **Create** (or Cmd+Return) to save
 
 The contact is created as a `.md` file in your **CRM folder** (default: `@CRM`, configurable via Settings) with the following structure:
 
@@ -86,15 +82,11 @@ Properties are stored in **YAML frontmatter** so they appear as columns in NoteP
 Record an interaction with a contact without scheduling a new reminder:
 
 1. Run **Log Interaction** command
-2. Select a contact from the list
-3. Choose the interaction type:
-   - ☎️ **Call**
-   - 📧 **Email**
-   - 🤝 **Meeting**
-   - 💬 **Text**
-   - 📱 **Social**
-   - 📝 **Other**
-4. Add optional notes about the interaction
+2. Select a contact from the list (supports fuzzy search)
+3. A form appears with two fields:
+   - **Interaction Type** — dropdown with your configured types (defaults: ☎️ Call, 📧 Email, 🤝 Meeting, 💬 Text, 📱 Social, 📝 Other — customizable via Settings)
+   - **Notes** — optional multi-line text area
+4. Press **Log** (or Cmd+Return) to save
 
 The interaction is logged in the contact's note under the **Interactions** section with a timestamp.
 
@@ -108,11 +100,10 @@ The interaction is logged in the contact's note under the **Interactions** secti
 Record an interaction with a contact AND automatically schedule the next follow-up reminder:
 
 1. Run **Log Interaction & Schedule Reminder** command
-2. Select a contact
-3. Choose interaction type
-4. Add notes
-5. The current reminder is completed automatically
-6. **Next reminder** is scheduled based on the contact's configured frequency
+2. Select a contact (supports fuzzy search)
+3. A form appears with **Interaction Type** and **Notes** fields
+4. Press **Log** — the current reminder is completed automatically
+5. **Next reminder** is scheduled based on the contact's configured frequency
 
 This is the primary workflow for maintaining regular contact.
 
@@ -121,14 +112,11 @@ This is the primary workflow for maintaining regular contact.
 Manually schedule a one-time reminder for a contact:
 
 1. Run **Set Reminder** command
-2. Select a contact
-3. Choose when to connect:
-   - **Today**
-   - **Tomorrow**
-   - **Next week**
-   - **In 2 weeks**
-   - **Next month**
-4. Enter reminder text (e.g., "Discuss proposal", "Birthday gift")
+2. Select a contact with **fuzzy search** (type to filter through large contact lists)
+3. A form appears with two fields:
+   - **When** — Today, Tomorrow, Next week, In 2 weeks, or Next month (required)
+   - **Reminder** — optional reminder text (e.g., "Discuss proposal", "Birthday gift")
+4. Press **Set** (or Cmd+Return) to save
 
 The reminder appears in NotePlan's calendar.
 
@@ -180,6 +168,13 @@ All settings are accessible via the **CRM Settings** command (`crms`).
 - **Use Case**: Extend the category list to match your specific relationship types
 
 ### Interaction Logging
+
+**Interaction Types** (`crm-interaction-types`)
+- **Default**: Empty (uses built-in defaults)
+- **Description**: Comma-separated list of interaction types shown in the form when logging an interaction. You can use any emoji + label combination.
+- **Default types**: `☎️ Call, 📧 Email, 🤝 Meeting, 💬 Text, 📱 Social, 📝 Other`
+- **Example**: `☎️ Call, 📧 Email, 🗓️ Check-in, 🍕 Lunch, 📝 Other`
+- **Use Case**: Remove types you never use or add domain-specific ones like "Demo" or "Coffee"
 
 **Timestamp Format** (`crm-interaction-datetime`)
 - **Options**:
@@ -367,6 +362,14 @@ tags: contact/Client
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
 ## Version History
+
+**v1.4.0** — Forms UI & customizable interaction types
+- All commands now use `CommandBar.showForm` to collect multiple inputs in a single step instead of chaining prompts:
+  - **Add Contact**: name, category, and frequency in one form
+  - **Log Interaction** / **Log Interaction & Schedule Reminder**: interaction type + notes in one form
+  - **Set Reminder**: contact selected via fuzzy-search, then when + reminder text in a form
+- New **Interaction Types** setting (`crm-interaction-types`): customize the list of interaction types shown when logging an interaction via a comma-separated list; leave empty to use the defaults
+- Requires NotePlan **v3.21.0** or later
 
 **v1.3.0** — Customizable reminder messages
 - New **Reminder Message Prefix** setting (`crm-reminder-prefix`): change the text before the contact name in automatic reminders (e.g. `Reach out to`, `Check in with`)

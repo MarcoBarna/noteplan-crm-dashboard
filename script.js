@@ -15,13 +15,22 @@ function getSetting(key, defaultValue) {
   return defaultValue
 }
 
-const INTERACTION_TYPES = {
-  call: "☎️ Call",
-  email: "📧 Email",
-  meeting: "🤝 Meeting",
-  text: "💬 Text",
-  social: "📱 Social",
-  other: "📝 Other",
+const INTERACTION_TYPES_DEFAULT = [
+  "☎️ Call",
+  "📧 Email",
+  "🤝 Meeting",
+  "💬 Text",
+  "📱 Social",
+  "📝 Other",
+]
+
+// Returns the active interaction types from settings, falling back to defaults
+function getInteractionTypes() {
+  const raw = getSetting("crm-interaction-types", "")
+  if (typeof raw === "string" && raw.trim()) {
+    return raw.split(",").map(s => s.trim()).filter(s => s.length > 0)
+  }
+  return INTERACTION_TYPES_DEFAULT
 }
 
 const REMINDER_FREQUENCIES = {
@@ -44,12 +53,6 @@ const WINDOW_ID = "np.jokky102.crm.main"
 async function addRelationship() {
   try {
     // invokePluginCommandByName expects a return value; return {} to suppress log errors
-    const name = await CommandBar.showInput(
-      "Contact Name",
-      "Create Contact '%@'"
-    )
-    if (!name) return
-
     const defaultCategories = ["Client", "Colleague", "Friend", "Family"]
     const customCatsRaw = getSetting("crm-custom-categories", "")
     const customCats = typeof customCatsRaw === "string" && customCatsRaw.trim()
@@ -57,23 +60,46 @@ async function addRelationship() {
       : []
     const allCategories = [...defaultCategories, ...customCats]
 
-    const category = await CommandBar.showOptions(
-      allCategories,
-      "Select category for " + name
-    )
+    const formResult = await CommandBar.showForm({
+      title: "Add Contact",
+      submitText: "Create",
+      fields: [
+        {
+          type: "string",
+          key: "name",
+          title: "Name",
+          placeholder: "Contact name",
+          required: true,
+        },
+        {
+          type: "string",
+          key: "category",
+          title: "Category",
+          choices: allCategories,
+          required: true,
+        },
+        {
+          type: "string",
+          key: "frequency",
+          title: "Connect frequency",
+          choices: Object.values(REMINDER_FREQUENCIES),
+          required: true,
+        },
+      ],
+    })
 
-    const reminderFreq = await CommandBar.showOptions(
-      Object.values(REMINDER_FREQUENCIES),
-      "How often should you connect?"
-    )
+    if (!formResult.submitted) return {}
 
-    const reminderFreqKey = Object.keys(REMINDER_FREQUENCIES)[reminderFreq.index]
-    const frequencyText = Object.values(REMINDER_FREQUENCIES)[reminderFreq.index]
+    const name = formResult.values.name
+    const frequencyText = formResult.values.frequency
+    const reminderFreqKey = Object.keys(REMINDER_FREQUENCIES)[
+      Object.values(REMINDER_FREQUENCIES).indexOf(frequencyText)
+    ]
 
     const tagPrefix = getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
     const noteContent = createContactNote(
       name,
-      category.value,
+      formResult.values.category,
       frequencyText,
       reminderFreqKey,
       tagPrefix
@@ -124,15 +150,31 @@ async function showCRMDashboard() {
 // Base function: log interaction without creating a reminder
 async function logInteractionBase(contact) {
   try {
-    const interactionType = await CommandBar.showOptions(
-      Object.values(INTERACTION_TYPES),
-      "How did you interact?"
-    )
+    const formResult = await CommandBar.showForm({
+      title: "Log Interaction with " + contact.name,
+      submitText: "Log",
+      fields: [
+        {
+          type: "string",
+          key: "type",
+          title: "Interaction Type",
+          choices: getInteractionTypes(),
+          required: true,
+        },
+        {
+          type: "string",
+          key: "notes",
+          title: "Notes",
+          placeholder: "Interaction notes",
+          boxHeight: 120,
+        },
+      ],
+    })
 
-    const notes = await CommandBar.showInput(
-      "Interaction notes",
-      "Add notes: '%@'"
-    )
+    if (!formResult.submitted) return false
+
+    const interactionType = formResult.values.type
+    const notes = formResult.values.notes
 
     // Reads the note directly without opening it in the editor
     const note = DataStore.projectNoteByFilename(contact.filename)
@@ -141,7 +183,7 @@ async function logInteractionBase(contact) {
       return false
     }
 
-    const interaction = `${formatDateTime(new Date())} ${interactionType.value} - ${notes || "No notes"}`
+    const interaction = `${formatDateTime(new Date())} ${interactionType} - ${notes || "No notes"}`
     let interactionPosition = getSetting("crm-interaction-position", "append")
     if (typeof interactionPosition === "boolean") {
       interactionPosition = interactionPosition ? "prepend" : "append"
@@ -269,28 +311,44 @@ async function setReminder() {
       return
     }
 
+    // Use showOptions for contact so the user can fuzzy-search through large lists
     const contactChoice = await CommandBar.showOptions(
       contacts.map((c) => c.name),
       "Select contact to remind"
     )
     const contact = contacts[contactChoice.index]
 
-    const reminderType = await CommandBar.showOptions(
-      ["Today", "Tomorrow", "Next week", "In 2 weeks", "Next month"],
-      "When do you want to connect?"
-    )
-
+    const whenOptions = ["Today", "Tomorrow", "Next week", "In 2 weeks", "Next month"]
     const offsetDays = [0, 1, 7, 14, 30]
-    const reminderDate = new Date()
-    reminderDate.setDate(reminderDate.getDate() + offsetDays[reminderType.index])
 
-    const reminderText = await CommandBar.showInput(
-      "What's the reminder?",
-      "Reminder: '%@'"
-    )
+    const formResult = await CommandBar.showForm({
+      title: "Set Reminder for " + contact.name,
+      submitText: "Set",
+      fields: [
+        {
+          type: "string",
+          key: "when",
+          title: "When",
+          choices: whenOptions,
+          required: true,
+        },
+        {
+          type: "string",
+          key: "text",
+          title: "Reminder",
+          placeholder: "What's the reminder?",
+        },
+      ],
+    })
+
+    if (!formResult.submitted) return {}
+
+    const whenIndex = whenOptions.indexOf(formResult.values.when)
+    const reminderDate = new Date()
+    reminderDate.setDate(reminderDate.getDate() + offsetDays[whenIndex])
 
     scheduleCalendarReminder(
-      `${contact.name}: ${reminderText || "Follow up"}`,
+      `${contact.name}: ${formResult.values.text || "Follow up"}`,
       reminderDate,
       contact.filename
     )

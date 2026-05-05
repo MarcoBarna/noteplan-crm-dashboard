@@ -1,12 +1,12 @@
 {
-  "noteplan.minAppVersion": "3.20.0",
+  "noteplan.minAppVersion": "3.21.0",
   "plugin.id": "np.jokky102.crm",
   "plugin.name": "📇 CRM",
   "plugin.description": "A simple CRM for NotePlan. Manage contacts, log interactions, and schedule follow-up reminders — all stored as notes in your CRM folder.",
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.3.0",
+  "plugin.version": "1.4.0",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -83,6 +83,13 @@
     {
       "type": "heading",
       "title": "Interaction Logging"
+    },
+    {
+      "key": "crm-interaction-types",
+      "title": "Interaction types",
+      "description": "Comma-separated list of interaction types shown when logging an interaction. You can use any emoji + label combination. Leave empty to use the defaults (☎️ Call, 📧 Email, 🤝 Meeting, 💬 Text, 📱 Social, 📝 Other).",
+      "type": "string",
+      "default": ""
     },
     {
       "key": "crm-interaction-datetime",
