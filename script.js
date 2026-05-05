@@ -370,104 +370,151 @@ async function setReminder() {
 async function updateSettings() {
   try {
     const currentTag = getSetting("crm-relationship-tag", SETTINGS.relationshipTag)
-
-    const tag = await CommandBar.showInput(
-      "Relationship tag prefix",
-      "Update tag to '%@'",
-      currentTag
-    )
-
-    // Navigation setting after interaction
-    const navigateChoice = await CommandBar.showOptions(
-      ["✅ Yes – open contact note after logging interaction", "🚫 No – stay in current context"],
-      "After logging an interaction, open the contact note?"
-    )
-    const navVal = navigateChoice.index === 0 ? "true" : "false"
-
-    // Interaction date/time format setting
-    const datetimeChoice = await CommandBar.showOptions(
-      ["📅 Date Only", "🕐 Date + Time"],
-      "Interaction timestamp format"
-    )
-    const dtVal = datetimeChoice.index === 0 ? "Date Only" : "Date + Time"
-
-    // Interaction position setting in the note
-    const positionChoice = await CommandBar.showOptions(
-      ["⬇️ Append – newest at the bottom", "⬆️ Prepend – newest at the top"],
-      "Where to add new interactions in the contact note?"
-    )
-    const posVal = positionChoice.index === 0 ? "append" : "prepend"
-
-    // Reminder backend picker
-    const backendChoice = await CommandBar.showOptions(
-      ["🔔 Apple Reminders (native notifications)", "📝 NotePlan Tasks (visible in notecard views)"],
-      "Where should CRM store follow-up reminders?"
-    )
-    const backendVal = backendChoice.index === 0 ? "Reminders" : "NotePlan"
-
-    // Reminder list picker (only relevant for Apple Reminders)
-    let listVal = ""
-    if (backendVal === "Reminders") {
-      const reminderLists = Calendar.availableReminderListTitles()
-      const currentList = getSetting("crm-reminder-list", "")
-      const listOptions = ["⬜ Default (system default)", ...reminderLists.map(l => (l === currentList ? "✅ " : "") + l)]
-      const listChoice = await CommandBar.showOptions(listOptions, "Which Reminders list should CRM use?")
-      listVal = listChoice.index === 0 ? "" : reminderLists[listChoice.index - 1]
-    }
-
-    // CRM folder
     const currentFolder = getSetting("crm-data-folder", SETTINGS.dataFolder)
-    const folderInput = await CommandBar.showInput(
-      "CRM folder name (e.g. @CRM, Work/CRM)",
-      "Folder: '%@'",
-      currentFolder
-    )
-    const folderVal = folderInput && folderInput.trim() ? folderInput.trim() : currentFolder
-
-    // Custom categories
     const currentCustomCats = getSetting("crm-custom-categories", "")
-    const customCatsInput = await CommandBar.showInput(
-      "Custom categories (comma-separated, e.g. Mentor, Investor)",
-      "Categories: '%@'",
-      currentCustomCats
-    )
-    const customCatsVal = customCatsInput !== null && customCatsInput !== undefined
-      ? customCatsInput
-      : currentCustomCats
-
-    // Reminder prefix
+    const currentInteractionTypes = getSetting("crm-interaction-types", "")
+    const currentNav = getSetting("crm-navigate-after-interaction", "true")
+    const currentDt = getSetting("crm-interaction-datetime", "Date + Time")
+    const currentPos = getSetting("crm-interaction-position", "append")
+    const currentBackend = getSetting("crm-reminder-backend", "Reminders")
     const currentReminderPrefix = getSetting("crm-reminder-prefix", "Follow up with")
-    const prefixInput = await CommandBar.showInput(
-      "Reminder prefix (e.g. Follow up with, Reach out to, Check in with)",
-      "Prefix: '%@'",
-      currentReminderPrefix
-    )
-    const prefixVal = prefixInput && prefixInput.trim() ? prefixInput.trim() : currentReminderPrefix
-
-    // Reminder tag
     const currentReminderTag = getSetting("crm-reminder-tag", "")
-    const reminderTagInput = await CommandBar.showInput(
-      "Optional tag appended to reminders (e.g. #follow-up). Leave empty for none.",
-      "Tag: '%@'",
-      currentReminderTag
-    )
-    const reminderTagVal = reminderTagInput !== null && reminderTagInput !== undefined
-      ? reminderTagInput.trim()
-      : currentReminderTag
+
+    const formResult = await CommandBar.showForm({
+      title: "CRM Settings",
+      submitText: "Save",
+      fields: [
+        {
+          type: "string",
+          key: "folder",
+          title: "CRM folder",
+          placeholder: "@CRM",
+          default: currentFolder,
+          description: "The NotePlan folder where contact notes are stored. You can use a nested path, e.g. Work/CRM.",
+          required: true,
+        },
+        {
+          type: "string",
+          key: "tag",
+          title: "Contact tag prefix",
+          placeholder: "contact",
+          default: currentTag,
+          description: "The hashtag prefix used to categorise contacts (e.g. 'contact' produces #contact/Client).",
+          required: true,
+        },
+        {
+          type: "string",
+          key: "customCategories",
+          title: "Custom categories",
+          placeholder: "Mentor, Investor, Partner",
+          default: currentCustomCats,
+          description: "Additional categories beyond Client, Colleague, Friend, Family. Comma-separated.",
+        },
+        {
+          type: "string",
+          key: "interactionTypes",
+          title: "Interaction types",
+          placeholder: "☎️ Call, 📧 Email, 🤝 Meeting, 💬 Text, 📱 Social, 📝 Other",
+          default: currentInteractionTypes,
+          description: "Comma-separated list of interaction types. Leave empty to use the defaults.",
+        },
+        {
+          type: "string",
+          key: "datetime",
+          title: "Timestamp format",
+          choices: ["Date Only", "Date + Time"],
+          default: currentDt,
+          required: true,
+        },
+        {
+          type: "string",
+          key: "position",
+          title: "Interaction position in note",
+          choices: ["append", "prepend"],
+          default: currentPos,
+          required: true,
+          description: "append = newest at bottom, prepend = newest at top (below ## Interactions heading).",
+        },
+        {
+          type: "bool",
+          key: "navigate",
+          title: "Open contact note after logging interaction",
+          default: currentNav === "true",
+        },
+        {
+          type: "string",
+          key: "backend",
+          title: "Reminder backend",
+          choices: ["Reminders", "NotePlan"],
+          default: currentBackend,
+          required: true,
+          description: "Reminders = Apple Reminders (native notifications). NotePlan = tasks inside the contact note.",
+        },
+        {
+          type: "string",
+          key: "reminderPrefix",
+          title: "Reminder message prefix",
+          placeholder: "Follow up with",
+          default: currentReminderPrefix,
+          description: "Text before the contact name in automatic reminders.",
+        },
+        {
+          type: "string",
+          key: "reminderTag",
+          title: "Reminder tag",
+          placeholder: "#follow-up",
+          default: currentReminderTag,
+          description: "Optional tag appended to reminder titles. Leave empty for none.",
+        },
+      ],
+    })
+
+    if (!formResult.submitted) return
+
+    const v = formResult.values
+
+    // If backend is Reminders, ask which list to use
+    let listVal = ""
+    if (v.backend === "Reminders") {
+      const reminderLists = Calendar.availableReminderListTitles()
+      if (reminderLists && reminderLists.length > 0) {
+        const currentList = getSetting("crm-reminder-list", "")
+        const listOptions = ["Default (system default)", ...reminderLists]
+        const defaultList = currentList && reminderLists.includes(currentList) ? currentList : "Default (system default)"
+        const listForm = await CommandBar.showForm({
+          title: "Reminder List",
+          submitText: "Save",
+          fields: [
+            {
+              type: "string",
+              key: "list",
+              title: "Which Reminders list should CRM use?",
+              choices: listOptions,
+              default: defaultList,
+              required: true,
+            },
+          ],
+        })
+        if (listForm.submitted && listForm.values.list !== "Default (system default)") {
+          listVal = listForm.values.list
+        }
+      }
+    }
 
     // Save settings via DataStore.settings
     DataStore.settings = {
       ...DataStore.settings,
-      "crm-relationship-tag": tag || DataStore.settings["crm-relationship-tag"] || SETTINGS.relationshipTag,
-      "crm-navigate-after-interaction": navVal,
-      "crm-interaction-datetime": dtVal,
-      "crm-interaction-position": posVal,
-      "crm-reminder-backend": backendVal,
+      "crm-relationship-tag": v.tag || currentTag,
+      "crm-navigate-after-interaction": v.navigate ? "true" : "false",
+      "crm-interaction-datetime": v.datetime,
+      "crm-interaction-position": v.position,
+      "crm-reminder-backend": v.backend,
       "crm-reminder-list": listVal,
-      "crm-data-folder": folderVal,
-      "crm-custom-categories": customCatsVal,
-      "crm-reminder-prefix": prefixVal,
-      "crm-reminder-tag": reminderTagVal,
+      "crm-data-folder": v.folder || currentFolder,
+      "crm-custom-categories": v.customCategories != null ? v.customCategories : currentCustomCats,
+      "crm-interaction-types": v.interactionTypes != null ? v.interactionTypes : currentInteractionTypes,
+      "crm-reminder-prefix": v.reminderPrefix || currentReminderPrefix,
+      "crm-reminder-tag": v.reminderTag != null ? v.reminderTag.trim() : currentReminderTag,
     }
 
     await refreshDashboardIfOpen()
