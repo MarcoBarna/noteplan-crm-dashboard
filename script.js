@@ -229,11 +229,14 @@ async function addInteraction() {
     const success = await logInteractionBase(contact)
     if (!success) return
 
-    await CommandBar.prompt(
-      "Interaction logged!",
-      `Added interaction for ${contact.name}`,
-      ["OK"]
-    )
+    const showConfirm = getSetting("crm-show-interaction-confirm", "true")
+    if (showConfirm !== "false") {
+      await CommandBar.prompt(
+        "Interaction logged!",
+        `Added interaction for ${contact.name}`,
+        ["OK"]
+      )
+    }
 
     // ✅ Navigate to the contact note only if the preference is enabled
     const navigateAfterInteraction = getSetting("crm-navigate-after-interaction", "true")
@@ -282,11 +285,14 @@ async function logInteractionWithReminder() {
       }
     }
 
-    await CommandBar.prompt(
-      "Interaction logged!",
-      `Added interaction for ${contact.name} with reminder scheduled`,
-      ["OK"]
-    )
+    const showConfirm = getSetting("crm-show-interaction-confirm", "true")
+    if (showConfirm !== "false") {
+      await CommandBar.prompt(
+        "Interaction logged!",
+        `Added interaction for ${contact.name} with reminder scheduled`,
+        ["OK"]
+      )
+    }
 
     // ✅ Navigate to the contact note only if the preference is enabled
     const navigateAfterInteraction = getSetting("crm-navigate-after-interaction", "true")
@@ -373,6 +379,7 @@ async function updateSettings() {
     const currentFolder = getSetting("crm-data-folder", SETTINGS.dataFolder)
     const currentCustomCats = getSetting("crm-custom-categories", "")
     const currentInteractionTypes = getSetting("crm-interaction-types", "")
+    const currentShowConfirm = getSetting("crm-show-interaction-confirm", "true")
     const currentNav = getSetting("crm-navigate-after-interaction", "true")
     const currentDt = getSetting("crm-interaction-datetime", "Date + Time")
     const currentPos = getSetting("crm-interaction-position", "append")
@@ -434,6 +441,13 @@ async function updateSettings() {
           default: currentPos,
           required: true,
           description: "append = newest at bottom, prepend = newest at top (below ## Interactions heading).",
+        },
+        {
+          type: "bool",
+          key: "showConfirm",
+          title: "Show confirmation popup after logging interaction",
+          default: currentShowConfirm === "true",
+          description: "Disable to avoid NotePlan coming to the foreground when logging from another app.",
         },
         {
           type: "bool",
@@ -505,6 +519,7 @@ async function updateSettings() {
     DataStore.settings = {
       ...DataStore.settings,
       "crm-relationship-tag": v.tag || currentTag,
+      "crm-show-interaction-confirm": v.showConfirm ? "true" : "false",
       "crm-navigate-after-interaction": v.navigate ? "true" : "false",
       "crm-interaction-datetime": v.datetime,
       "crm-interaction-position": v.position,
@@ -532,7 +547,7 @@ function getDataFolder() {
 function buildReminderTitle(contactName) {
   const prefix = getSetting("crm-reminder-prefix", "Follow up with")
   const tag = getSetting("crm-reminder-tag", "")
-  const tagSuffix = tag && tag.trim() ? " " + tag.trim() : ""
+  const tagSuffix = tag?.trim() ? " " + tag.trim() : ""
   return `${prefix} ${contactName}${tagSuffix}`
 }
 
@@ -540,7 +555,7 @@ function getRelationships() {
   try {
     
     const folderNotes = DataStore.projectNotes.filter(
-      (n) => n.filename && n.filename.startsWith(getDataFolder() + "/")
+      (n) => n.filename?.startsWith(getDataFolder() + "/")
     )
 
     // Get the current tag prefix from settings
@@ -551,7 +566,7 @@ function getRelationships() {
       .map((note) => {
         // Verify that it is a valid contact (has the configured tag in frontmatter)
         const fm = parseFrontmatter(note.content)
-        if (!fm.tags || !fm.tags.includes(requiredTagPrefix)) return null
+        if (!fm.tags?.includes(requiredTagPrefix)) return null
         const rel = parseContactNote(note)
         if (!rel) return null
         return { name: note.title, filename: note.filename, ...rel }
@@ -772,7 +787,7 @@ async function refreshDashboardIfOpen() {
 function getCRMTasks() {
   try {
     const folderNotes = DataStore.projectNotes.filter(
-      (n) => n.filename && n.filename.startsWith(getDataFolder() + "/")
+      (n) => n.filename?.startsWith(getDataFolder() + "/")
     )
     const tasks = []
     for (const note of folderNotes) {

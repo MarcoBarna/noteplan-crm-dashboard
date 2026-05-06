@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.4.1",
+  "plugin.version": "1.4.2",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -112,6 +112,18 @@
       "choices": [
         "append",
         "prepend"
+      ],
+      "required": true
+    },
+    {
+      "key": "crm-show-interaction-confirm",
+      "title": "Show confirmation popup after logging interaction",
+      "description": "When enabled, a popup confirms that the interaction was logged successfully. Disable this if you log interactions from another app and don't want NotePlan to come to the foreground.",
+      "type": "string",
+      "default": "true",
+      "choices": [
+        "true",
+        "false"
       ],
       "required": true
     },
