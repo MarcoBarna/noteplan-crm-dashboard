@@ -631,6 +631,8 @@ tags: ${tag}/${category}
 
 ## Photo
 
+## Notes
+
 ## Tasks
 
 ## Interactions
