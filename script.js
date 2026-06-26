@@ -1186,7 +1186,9 @@ function getCRMDashboardHTML(contacts) {
       if (overdueRaw.length > 0) {
         html += '<div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Overdue</div>';
         html += overdueRaw.map(function(r) {
-          return '<div class="card" style="border-left:3px solid #FF3B30;">' +
+          var fn = r.notes && r.notes.startsWith('From CRM:') ? r.notes.replace('From CRM:', '').trim() : '';
+          return '<div class="card" style="border-left:3px solid #FF3B30;"' +
+            (fn ? ' data-filename="' + esc(fn) + '" onclick="openContact(this)"' : '') + '>' +
             '<div class="card-title">' + esc(r.title) + '</div>' +
             '<div class="card-meta"><span style="color:#FF3B30;">' + new Date(r.date).toLocaleDateString() + '</span></div>' +
           '</div>';
@@ -1198,7 +1200,9 @@ function getCRMDashboardHTML(contacts) {
           html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
         }
         html += upcoming.map(function(r) {
-          return '<div class="card">' +
+          var fn = r.notes && r.notes.startsWith('From CRM:') ? r.notes.replace('From CRM:', '').trim() : '';
+          return '<div class="card"' +
+            (fn ? ' data-filename="' + esc(fn) + '" onclick="openContact(this)"' : '') + '>' +
             '<div class="card-title">' + esc(r.title) + '</div>' +
             '<div class="card-meta"><span>' + new Date(r.date).toLocaleDateString() + '</span></div>' +
           '</div>';
@@ -1248,7 +1252,8 @@ function getCRMDashboardHTML(contacts) {
     if (overdue.length > 0) {
       html += '<div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Overdue</div>';
       html += overdue.map(function(t) {
-        return '<div class="card" style="border-left:3px solid #FF3B30;">' +
+        return '<div class="card" style="border-left:3px solid #FF3B30;"' +
+          (t.filename ? ' data-filename="' + esc(t.filename) + '" onclick="openContact(this)"' : '') + '>' +
           '<div class="card-title">' + esc(t.title) + '</div>' +
           '<div class="card-meta"><span style="color:#FF3B30;">' + esc(t.date) + '</span>' +
           (t.contact ? ' <span>👤 ' + esc(t.contact) + '</span>' : '') + '</div></div>';
@@ -1260,7 +1265,8 @@ function getCRMDashboardHTML(contacts) {
         html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
       }
       html += upcoming.map(function(t) {
-        return '<div class="card">' +
+        return '<div class="card"' +
+          (t.filename ? ' data-filename="' + esc(t.filename) + '" onclick="openContact(this)"' : '') + '>' +
           '<div class="card-title">' + esc(t.title) + '</div>' +
           '<div class="card-meta"><span>' + esc(t.date) + '</span>' +
           (t.contact ? ' <span>👤 ' + esc(t.contact) + '</span>' : '') + '</div></div>';
