@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.4.5",
+  "plugin.version": "1.5.0",
   "plugin.script": "script.js",
   "plugin.commands": [
     {

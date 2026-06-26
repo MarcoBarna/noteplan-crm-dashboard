@@ -120,7 +120,11 @@ async function addRelationship() {
       `${name} has been added to your CRM`,
       ["OK"]
     )
-    
+
+    // Open the new note so it's loaded into the editor cache — this ensures
+    // clicking the contact card in the dashboard works on the first attempt.
+    await Editor.openNoteByFilename(filename)
+
     // Refresh dashboard if open, otherwise do nothing
     await refreshDashboardIfOpen()
     return {}
@@ -955,13 +959,13 @@ function getCRMDashboardHTML(contacts) {
       padding: 14px 16px;
       border-radius: 8px;
       border-left: 4px solid #007AFF;
-      cursor: pointer;
       transition: background 0.2s;
     }
-    .card:hover { background: #ececf0; }
+    .card[onclick] { cursor: pointer; }
+    .card[onclick]:hover { background: #ececf0; }
     @media (prefers-color-scheme: dark) {
       .card { background: #2c2c2e; }
-      .card:hover { background: #3a3a3d; }
+      .card[onclick]:hover { background: #3a3a3d; }
     }
 
     .card-title { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
@@ -1108,7 +1112,7 @@ function getCRMDashboardHTML(contacts) {
     await DataStore.invokePluginCommandByName('Add Contact', 'np.jokky102.crm', []);
   }
 
-  function openContact(el) {
+  async function openContact(el) {
     var filename = el.getAttribute('data-filename');
     if (filename) Editor.openNoteByFilename(filename);
   }
@@ -1186,9 +1190,7 @@ function getCRMDashboardHTML(contacts) {
       if (overdueRaw.length > 0) {
         html += '<div style="font-size:11px;font-weight:700;color:#FF3B30;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">⚠️ Overdue</div>';
         html += overdueRaw.map(function(r) {
-          var fn = r.notes && r.notes.startsWith('From CRM:') ? r.notes.replace('From CRM:', '').trim() : '';
-          return '<div class="card" style="border-left:3px solid #FF3B30;"' +
-            (fn ? ' data-filename="' + esc(fn) + '" onclick="openContact(this)"' : '') + '>' +
+          return '<div class="card" style="border-left:3px solid #FF3B30;">' +
             '<div class="card-title">' + esc(r.title) + '</div>' +
             '<div class="card-meta"><span style="color:#FF3B30;">' + new Date(r.date).toLocaleDateString() + '</span></div>' +
           '</div>';
@@ -1200,9 +1202,7 @@ function getCRMDashboardHTML(contacts) {
           html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
         }
         html += upcoming.map(function(r) {
-          var fn = r.notes && r.notes.startsWith('From CRM:') ? r.notes.replace('From CRM:', '').trim() : '';
-          return '<div class="card"' +
-            (fn ? ' data-filename="' + esc(fn) + '" onclick="openContact(this)"' : '') + '>' +
+          return '<div class="card">' +
             '<div class="card-title">' + esc(r.title) + '</div>' +
             '<div class="card-meta"><span>' + new Date(r.date).toLocaleDateString() + '</span></div>' +
           '</div>';
