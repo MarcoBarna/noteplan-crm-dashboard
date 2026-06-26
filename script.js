@@ -661,24 +661,25 @@ function scheduleAppleReminder(title, date, noteFilename) {
 
 function scheduleNoteplanTask(title, date, noteFilename) {
   try {
-    const filename = noteFilename
-    const note = DataStore.projectNoteByFilename(filename)
+    const note = DataStore.projectNoteByFilename(noteFilename)
     if (!note) {
-      console.log(`❌ Could not open note for NP task: ${filename}`)
+      console.log(`❌ Could not open note for NP task: ${noteFilename}`)
       return
     }
 
     const dateStr = formatDate(date)
-    const taskText = `${title} >${dateStr}`
+    // Use the full checkbox syntax so NotePlan recognises it as an open task
+    const taskLine = `* [ ] ${title} >${dateStr}`
 
-    const tasksHeading = note.paragraphs.find(
-      p => p.type === "title" && p.content.trim() === "Tasks"
-    )
-    if (tasksHeading) {
-      note.insertParagraph(taskText, tasksHeading.lineIndex + 1, "open")
+    // Write via note.content (same pattern as last_contact updates) so NotePlan
+    // re-parses the entire note and picks up the new >date scheduled task in its index.
+    const content = note.content || ""
+    const headingMatch = content.match(/^## Tasks$/m)
+    if (headingMatch) {
+      const pos = headingMatch.index + headingMatch[0].length
+      note.content = content.slice(0, pos) + "\n" + taskLine + content.slice(pos)
     } else {
-      note.appendParagraph("## Tasks", "empty")
-      note.appendParagraph(taskText, "open")
+      note.content = content.trimEnd() + "\n\n## Tasks\n" + taskLine + "\n"
     }
   } catch (error) {
     console.log(`❌ Error scheduling NotePlan task: ${error.message}`)
