@@ -6,7 +6,7 @@
   "plugin.icon": "users",
   "plugin.iconColor": "blue-500",
   "plugin.author": "jokky102",
-  "plugin.version": "1.4.2",
+  "plugin.version": "1.4.5",
   "plugin.script": "script.js",
   "plugin.commands": [
     {
@@ -60,9 +60,9 @@
     {
       "key": "crm-data-folder",
       "title": "CRM folder",
-      "description": "The NotePlan folder where contact notes are stored. Defaults to '@CRM'. You can use a nested path, e.g. 'Work/CRM'.",
+      "description": "The NotePlan folder where contact notes are stored. Defaults to 'CRM'. You can use a nested path, e.g. 'Work/CRM'.",
       "type": "string",
-      "default": "@CRM",
+      "default": "CRM",
       "required": true
     },
     {

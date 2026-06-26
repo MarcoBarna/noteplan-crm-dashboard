@@ -3,7 +3,7 @@
 
 const SETTINGS = {
   relationshipTag: "contact",
-  dataFolder: "@CRM",
+  dataFolder: "CRM",
 }
 
 const PLUGIN_ID = "np.jokky102.crm"
