@@ -121,10 +121,6 @@ async function addRelationship() {
       ["OK"]
     )
 
-    // Open the new note so it's loaded into the editor cache — this ensures
-    // clicking the contact card in the dashboard works on the first attempt.
-    await Editor.openNoteByFilename(filename)
-
     // Refresh dashboard if open, otherwise do nothing
     await refreshDashboardIfOpen()
     return {}
@@ -1017,7 +1013,7 @@ function getCRMDashboardHTML(contacts) {
     </div>
     <div class="stat-card">
       <div class="stat-value" id="upcomingReminders">—</div>
-      <div class="stat-label">This Week</div>
+      <div class="stat-label">Upcoming</div>
     </div>
     <div class="stat-card">
       <div class="stat-value" id="overdueCount">—</div>
@@ -1112,9 +1108,22 @@ function getCRMDashboardHTML(contacts) {
     await DataStore.invokePluginCommandByName('Add Contact', 'np.jokky102.crm', []);
   }
 
-  async function openContact(el) {
+  function openContact(el) {
     var filename = el.getAttribute('data-filename');
-    if (filename) Editor.openNoteByFilename(filename);
+    if (!filename) return;
+    // Encode the filename but preserve forward slashes so NotePlan's openNote
+    // handler can resolve the folder/note path correctly.
+    var encoded = encodeURIComponent(filename).replace(/%2F/gi, '/');
+    var url = 'noteplan://x-callback-url/openNote?fileName=' + encoded;
+    // Use an anchor click rather than window.location.href — WKWebView routes
+    // anchor navigations through its navigation delegate which handles custom
+    // URL schemes, whereas direct location assignment may be silently blocked.
+    var a = document.createElement('a');
+    a.href = url;
+    a.style.display = 'none';
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(function() { if (a.parentNode) document.body.removeChild(a); }, 100);
   }
 
   // ──────────────────────────────────────────────────────────────────────────
@@ -1176,11 +1185,11 @@ function getCRMDashboardHTML(contacts) {
 
       var overdueRaw = (await Calendar.remindersBetween(pastStart, yesterdayEnd, '')).filter(isCrmReminder);
 
-      var endOfWeek = new Date(todayStart);
-      endOfWeek.setDate(endOfWeek.getDate() + (6 - todayStart.getDay()));
-      endOfWeek.setHours(23, 59, 59, 999);
+      var end30 = new Date(todayStart);
+      end30.setDate(end30.getDate() + 30);
+      end30.setHours(23, 59, 59, 999);
 
-      var upcoming = (await Calendar.remindersBetween(todayStart, endOfWeek, '')).filter(isCrmReminder);
+      var upcoming = (await Calendar.remindersBetween(todayStart, end30, '')).filter(isCrmReminder);
 
       document.getElementById('upcomingReminders').textContent = upcoming.length;
       document.getElementById('overdueCount').textContent = overdueRaw.length;
@@ -1199,7 +1208,7 @@ function getCRMDashboardHTML(contacts) {
 
       if (upcoming.length > 0) {
         if (overdueRaw.length > 0) {
-          html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
+          html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 Upcoming</div>';
         }
         html += upcoming.map(function(r) {
           return '<div class="card">' +
@@ -1210,7 +1219,7 @@ function getCRMDashboardHTML(contacts) {
       }
 
       if (html === '') {
-        el.innerHTML = '<div class="empty">No reminders this week 🎉</div>';
+        el.innerHTML = '<div class="empty">No upcoming reminders 🎉</div>';
       } else {
         el.innerHTML = html;
       }
@@ -1229,11 +1238,11 @@ function getCRMDashboardHTML(contacts) {
       String(now.getDate()).padStart(2, '0');
     var todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
 
-    var endOfWeek = new Date(todayStart);
-    endOfWeek.setDate(endOfWeek.getDate() + (6 - todayStart.getDay()));
-    var endOfWeekStr = endOfWeek.getFullYear() + '-' +
-      String(endOfWeek.getMonth() + 1).padStart(2, '0') + '-' +
-      String(endOfWeek.getDate()).padStart(2, '0');
+    var end30 = new Date(todayStart);
+    end30.setDate(end30.getDate() + 30);
+    var end30Str = end30.getFullYear() + '-' +
+      String(end30.getMonth() + 1).padStart(2, '0') + '-' +
+      String(end30.getDate()).padStart(2, '0');
 
     var overdue = [];
     var upcoming = [];
@@ -1241,7 +1250,7 @@ function getCRMDashboardHTML(contacts) {
     for (var i = 0; i < NP_TASKS.length; i++) {
       var t = NP_TASKS[i];
       if (t.date < todayStr) overdue.push(t);
-      else if (t.date <= endOfWeekStr) upcoming.push(t);
+      else if (t.date <= end30Str) upcoming.push(t);
     }
 
     document.getElementById('upcomingReminders').textContent = upcoming.length;
@@ -1262,7 +1271,7 @@ function getCRMDashboardHTML(contacts) {
 
     if (upcoming.length > 0) {
       if (overdue.length > 0) {
-        html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 This week</div>';
+        html += '<div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:0.5px;margin:12px 0 6px;">📅 Upcoming</div>';
       }
       html += upcoming.map(function(t) {
         return '<div class="card"' +
@@ -1274,7 +1283,7 @@ function getCRMDashboardHTML(contacts) {
     }
 
     if (html === '') {
-      el.innerHTML = '<div class="empty">No tasks this week 🎉</div>';
+      el.innerHTML = '<div class="empty">No upcoming tasks 🎉</div>';
     } else {
       el.innerHTML = html;
     }
