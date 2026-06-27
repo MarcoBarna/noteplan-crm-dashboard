@@ -361,38 +361,6 @@ tags: contact/Client
 - Restart the plugin by disabling and re-enabling it in Plugin Manager
 - Clear the settings file if corruption is suspected (located in plugin preferences folder)
 
-## Version History
-
-**v1.4.0** — Forms UI & customizable interaction types
-- All commands now use `CommandBar.showForm` to collect multiple inputs in a single step instead of chaining prompts:
-  - **Add Contact**: name, category, and frequency in one form
-  - **Log Interaction** / **Log Interaction & Schedule Reminder**: interaction type + notes in one form
-  - **Set Reminder**: contact selected via fuzzy-search, then when + reminder text in a form
-- New **Interaction Types** setting (`crm-interaction-types`): customize the list of interaction types shown when logging an interaction via a comma-separated list; leave empty to use the defaults
-- Requires NotePlan **v3.21.0** or later
-
-**v1.3.0** — Customizable reminder messages
-- New **Reminder Message Prefix** setting (`crm-reminder-prefix`): change the text before the contact name in automatic reminders (e.g. `Reach out to`, `Check in with`)
-- New **Reminder Tag** setting (`crm-reminder-tag`): append an optional tag to all reminder titles (e.g. `#follow-up` → `Follow up with John #follow-up`)
-- Both settings are available in the **CRM Settings** command and in NotePlan's Plugin Preferences
-
-**v1.2.5** — Configurable CRM folder
-- New **CRM Folder** setting (`crm-data-folder`): choose any folder (or nested path) where contact notes are stored — defaults to `@CRM`
-- Setting is available both in the **CRM Settings** command and in NotePlan's Plugin Preferences
-
-**v1.2.0** — Custom categories & photo section
-- New **Custom Categories** setting (`crm-custom-categories`): extend the built-in contact categories with a comma-separated list of your own (e.g. Mentor, Investor, Partner)
-- Built-in default categories reduced to Client, Colleague, Friend, Family — add others via the new setting
-- Contact notes now include a `## Photo` section for attaching a contact photo
-- Contact notes now use a `tags` frontmatter field (e.g. `tags: contact/Client`) instead of an inline hashtag; contacts are filtered using this field
-- Added **Never** as a valid reminder frequency (no reminder is created)
-
-**v1.1.0** — NotePlan task backend & YAML frontmatter properties
-- New **Reminder Backend** setting: choose between Apple Reminders (native notifications) or NotePlan Tasks (tasks stored in the contact note, compatible with NotePlan dashboard plugins)
-- Contact notes now use **YAML frontmatter** for `category`, `frequency`, `frequency_key`, and `last_contact` — these appear as columns in NotePlan's notecard and column views
-- Contact notes now include a `## Tasks` heading for NotePlan task scheduling
-- Reminder list picker is now skipped when the NotePlan backend is selected
-
 ## Author
 
 Created by **jokky102**
